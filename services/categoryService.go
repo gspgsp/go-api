@@ -1,7 +1,7 @@
 package services
 
 import (
-	"helix-edu-api/models"
+	"edu_api/models"
 	_ "github.com/go-sql-driver/mysql"
 )
 

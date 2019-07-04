@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 	"github.com/ant0ine/go-json-rest/rest"
-	"helix-edu-api/controllers/edu"
-	"helix-edu-api/services"
+	"edu_api/controllers/edu"
+	"edu_api/services"
 )
 
 func main()  {

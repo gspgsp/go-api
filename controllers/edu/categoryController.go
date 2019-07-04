@@ -1,10 +1,10 @@
 package edu
 
 import (
-	"helix-edu-api/services"
+	"edu_api/services"
 	"github.com/ant0ine/go-json-rest/rest"
 	"log"
-	"helix-edu-api/models"
+	"edu_api/models"
 )
 
 /**

@@ -5,7 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"log"
 	"time"
-	"helix-edu-api/utils"
+	"edu_api/utils"
 )
 
 /**
@@ -28,7 +28,7 @@ func (that *BaseOrm) InitDB() {
 
 	v := utils.ConfigType{}
 
-	err = jsonStruct.Load("E:/gorespority/src/helix-edu-api/config/database.json", &v)
+	err = jsonStruct.Load("E:/gorespority/src/edu_api/config/database.json", &v)
 
 	if err != nil {
 		log.Println("parse db config error!", err)

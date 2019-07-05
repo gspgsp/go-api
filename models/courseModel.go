@@ -8,7 +8,7 @@ type Course struct {
 	Price           float32 `json:"price"`
 	VipPrice        float32 `json:"vip_price"`
 	Discount        float32 `json:"discount"`
-	DiscountAt      string  `json:"discount_at"`
+	DiscountEndAt   string  `json:"discount_end_at"`
 	CoverPicture    string  `json:"cover_picture"`
 	BackPicture     string  `json:"back_picture"`
 	LearnNum        int     `json:"learn_num"`
@@ -17,6 +17,7 @@ type Course struct {
 	FavNum          int     `json:"fav_num"`
 	VipLevel        int     `json:"vip_level"`
 	DifficultyLevel int     `json:"difficulty_level"`
+	IsRecommended   int     `json:"is_recommended"`
 	Length          int     `json:"length"`
 	LessonNum       int     `json:"lesson_num"`
 	EffectiveDay    int     `json:"effective_day"`

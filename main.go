@@ -15,7 +15,8 @@ func main()  {
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack ...)
 	router, err := rest.MakeRouter(
-		rest.Get("/category",new (edu.CategoryController).GetCategory),//这里传的是函数名称不需要(),只用传入方法名称
+		rest.Get("/category", new (edu.CategoryController).GetCategory),//这里传的是函数名称不需要(),只用传入方法名称
+		rest.Get("/course", new(edu.CourseController).GetCourseList),
 	)
 
 	if err != nil {

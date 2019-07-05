@@ -22,17 +22,11 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 
 	params := r.URL.Query()
 	limit := params.Get("limit")
-	intLimit, err := strconv.Atoi(limit)
-
-	if err != nil {
-		log.Println("limit conv error!", err)
-	}
+	intLimit, _ := strconv.Atoi(limit)
 
 	page := params.Get("page")
-	intPage, err := strconv.Atoi(page)
-	if err != nil {
-		log.Println("page conv error!", err)
-	}
+
+	intPage, _ := strconv.Atoi(page)
 
 	//如果传了limit那么就限制取值数量,如果传了page那么就分页查询,么次必须只能穿一个
 	if intLimit > 0 {

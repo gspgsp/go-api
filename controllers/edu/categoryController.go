@@ -1,16 +1,17 @@
 package edu
 
 import (
-	"edu_api/services"
 	"github.com/ant0ine/go-json-rest/rest"
 	"log"
 	"edu_api/models"
+	"edu_api/controllers"
 )
 
 /**
 定义分类控制器
  */
 type CategoryController struct {
+	controller controllers.Controller
 }
 
 /**
@@ -18,15 +19,13 @@ type CategoryController struct {
  */
 func (category *CategoryController) GetCategory(w rest.ResponseWriter, r *rest.Request) {
 	var (
-		err        error
-		baseOrm    *services.BaseOrm
 		categories []models.Category
 	)
 
-	categories, err = baseOrm.CategoryList()
+	categories, category.controller.Err = category.controller.BaseOrm.CategoryList()
 
-	if err != nil {
-		log.Println("query error", err)
+	if category.controller.Err != nil {
+		log.Println("query error", category.controller.Err)
 	} else {
 		returnJson := make(map[string]interface{})
 

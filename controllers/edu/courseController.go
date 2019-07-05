@@ -2,25 +2,30 @@ package edu
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"edu_api/services"
 	"edu_api/models"
 	"log"
+	"edu_api/controllers"
 )
 
+/**
+定义课程控制器
+ */
 type CourseController struct {
+	controller controllers.Controller
 }
 
+/**
+获取所有课程信息
+ */
 func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Request) {
 	var (
-		err     error
-		baseOrm *services.BaseOrm
 		courses []models.Course
 	)
 
-	courses, err = baseOrm.CourseList(r)
+	courses, course.controller.Err = course.controller.BaseOrm.CourseList(r)
 
-	if err != nil {
-		log.Println("query error", err)
+	if course.controller.Err != nil {
+		log.Println("query error", course.controller.Err)
 	} else {
 		returnJson := make(map[string]interface{})
 
@@ -33,6 +38,6 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 }
 
-func (course *CourseController) GetRecommendList(w rest.ResponseWriter, r *rest.Request) {
+func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Request) {
 
 }

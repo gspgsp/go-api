@@ -27,12 +27,10 @@ func (category *CategoryController) GetCategory(w rest.ResponseWriter, r *rest.R
 	if category.controller.Err != nil {
 		log.Println("query error", category.controller.Err)
 	} else {
-		returnJson := make(map[string]interface{})
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["categories"] = categories
 
-		returnJson["code"] = 0
-		returnJson["msg"] = "query successfully!"
-		returnJson["categories"] = categories
-
-		w.WriteJson(returnJson)
+		w.WriteJson(controllers.ReturnJson)
 	}
 }

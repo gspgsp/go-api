@@ -27,17 +27,30 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 	if course.controller.Err != nil {
 		log.Println("query error", course.controller.Err)
 	} else {
-		returnJson := make(map[string]interface{})
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["courses"] = courses
 
-		returnJson["code"] = 0
-		returnJson["msg"] = "query successfully!"
-		returnJson["courses"] = courses
-
-		w.WriteJson(returnJson)
+		w.WriteJson(controllers.ReturnJson)
 	}
 
 }
 
 func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Request) {
+	var (
+		packages []models.Package
+	)
+
+	packages, course.controller.Err = course.controller.BaseOrm.PackageList()
+
+	if course.controller.Err != nil {
+		log.Println("query error", course.controller.Err)
+	} else {
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["courses"] = packages
+
+		w.WriteJson(controllers.ReturnJson)
+	}
 
 }

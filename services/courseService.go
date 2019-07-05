@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+/**
+获取课程列表信息
+ */
 func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err error) {
 
 	var (

@@ -17,6 +17,7 @@ func main()  {
 	router, err := rest.MakeRouter(
 		rest.Get("/category", new (edu.CategoryController).GetCategory),//这里传的是函数名称不需要(),只用传入方法名称
 		rest.Get("/course", new(edu.CourseController).GetCourseList),
+		rest.Get("/package", new(edu.CourseController).GetPackageList),
 	)
 
 	if err != nil {

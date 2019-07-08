@@ -36,21 +36,24 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 }
 
+/**
+获取套餐列表
+ */
 func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		packages []models.Package
 	)
 
-	packages, course.controller.Err = course.controller.BaseOrm.PackageList()
+	packages, course.controller.Err = course.controller.BaseOrm.PackageList(r)
 
 	if course.controller.Err != nil {
-		log.Println("query error", course.controller.Err)
+		controllers.ReturnJson["code"] = 404
+		controllers.ReturnJson["msg"] = course.controller.Err
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
 		controllers.ReturnJson["courses"] = packages
-
-		w.WriteJson(controllers.ReturnJson)
 	}
 
+	w.WriteJson(controllers.ReturnJson)
 }

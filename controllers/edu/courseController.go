@@ -33,7 +33,28 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 		w.WriteJson(controllers.ReturnJson)
 	}
+}
 
+/**
+获取课程详情列表
+ */
+func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.Request) {
+	var (
+		detail models.Detail
+	)
+
+	detail, course.controller.Err = course.controller.BaseOrm.GetCourseDetail(r)
+
+	if course.controller.Err != nil {
+		controllers.ReturnJson["code"] = 404
+		controllers.ReturnJson["msg"] = course.controller.Err
+	} else {
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["detail"] = detail
+	}
+
+	w.WriteJson(controllers.ReturnJson)
 }
 
 /**

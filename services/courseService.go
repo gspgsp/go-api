@@ -8,6 +8,10 @@ import (
 	"strconv"
 )
 
+var (
+	where = make(map[string]interface{})
+)
+
 /**
 获取课程列表信息
  */
@@ -16,7 +20,6 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 	var (
 		tmpCourse     []models.Course //这个变量可以不用声明,直接用course就可以了
 		filter        utils.Filter
-		where         = make(map[string]interface{})
 		order         = ""
 		defaultLimit  = 20
 		defaultOffset = 0
@@ -103,4 +106,33 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 	}
 
 	return tmpCourse, nil
+}
+
+/**
+获取课程详情信息
+ */
+func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
+
+	params := r.URL.Query()
+
+	courseType := params.Get("type")
+
+	id, err := strconv.Atoi(r.PathParam("id"))
+
+	if courseType == "" || err != nil {
+		return detail, err
+	}
+
+	where["id"] = id
+	where["type"] = courseType
+
+	var detailTemp models.Detail
+
+	if err = baseOrm.GetDB().Table("h_edu_courses").Where(where).Find(&detailTemp.Course).Error; err != nil {
+		return detail, err
+	}
+
+	log.Printf("the detail is:%v\n", detailTemp)
+
+	return detailTemp, nil
 }

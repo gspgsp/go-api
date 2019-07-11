@@ -128,6 +128,15 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 
 	var detailTemp models.Detail
 
+	var userCourse models.UserCourse
+
+	var tempWhere = make(map[string]int)
+	tempWhere["id"] = 1
+
+	baseOrm.GetDB().Model(&userCourse).Where(tempWhere).Related(&userCourse.Course, "UserId").Find(&userCourse.Course)
+
+	log.Printf("the relatived data is:%v", userCourse)
+
 	if err = baseOrm.GetDB().Table("h_edu_courses").Where(where).Find(&detailTemp.Course).Error; err != nil {
 		return detail, err
 	}

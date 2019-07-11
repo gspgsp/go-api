@@ -37,3 +37,7 @@ type Course struct {
 	CreatedAt       string  `json:"created_at"`
 	CategoryId      int     `json:"category_id"`
 }
+
+func (Course) TableName() string  {
+	return "h_edu_course"
+}

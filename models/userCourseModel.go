@@ -20,3 +20,7 @@ type UserCourse struct {
 	UserId          int      `json:"user_id"`
 	Course          []Course `gorm:"ForeignKey:CourseId;AssociationForeignKey:ID"`
 }
+
+func (UserCourse) TableName() string  {
+	return "h_user_course"
+}

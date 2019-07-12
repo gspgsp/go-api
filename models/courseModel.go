@@ -39,5 +39,5 @@ type Course struct {
 }
 
 func (Course) TableName() string  {
-	return "h_edu_course"
+	return "h_edu_courses"
 }

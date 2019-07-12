@@ -12,6 +12,13 @@ var (
 	where = make(map[string]interface{})
 )
 
+type Result struct {
+	UID int `json:"uid"`
+	Id int `json:"id"`
+	Title string `json:"title"`
+	CourseId int `json:"course_id"`
+}
+
 /**
 获取课程列表信息
  */
@@ -111,7 +118,7 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 /**
 获取课程详情信息
  */
-func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
+func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.UserCourse, err error) {
 
 	params := r.URL.Query()
 
@@ -126,22 +133,30 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 	where["id"] = id
 	where["type"] = courseType
 
-	var detailTemp models.Detail
+	//var detailTemp models.Detail
 
 	var userCourse models.UserCourse
 
-	var tempWhere = make(map[string]int)
+	var tempWhere = make(map[string]interface{})
 	tempWhere["id"] = 1
 
-	baseOrm.GetDB().Model(&userCourse).Where(tempWhere).Related(&userCourse.Course, "UserId").Find(&userCourse.Course)
+	var result []Result
 
-	log.Printf("the relatived data is:%v", userCourse)
+	//baseOrm.GetDB().Model(&userCourse).Where(tempWhere).Related(&userCourse.Course).Find(&userCourse)
 
-	if err = baseOrm.GetDB().Table("h_edu_courses").Where(where).Find(&detailTemp.Course).Error; err != nil {
+	baseOrm.GetDB().Table("h_user_course").Joins("join h_edu_courses on h_user_course.course_id = h_edu_courses.id").Where("h_user_course.user_id = ?", 2).Select("h_user_course.user_id as uid, h_edu_courses.id as course_id").Scan(&result)
+
+	log.Printf("the relatived data is:%v", result)
+
+	return userCourse, nil
+
+
+
+	/*if err = baseOrm.GetDB().Table("h_edu_courses").Where(where).Find(&detailTemp.Course).Error; err != nil {
 		return detail, err
 	}
 
 	log.Printf("the detail is:%v\n", detailTemp)
 
-	return detailTemp, nil
+	return detailTemp, nil*/
 }

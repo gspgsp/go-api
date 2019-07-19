@@ -40,7 +40,7 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
  */
 func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.Request) {
 	var (
-		detail models.UserCourse
+		detail models.Detail
 	)
 
 	detail, course.controller.Err = course.controller.BaseOrm.GetCourseDetail(r)

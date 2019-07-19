@@ -13,10 +13,10 @@ var (
 )
 
 type Result struct {
-	UID int `json:"uid"`
-	Id int `json:"id"`
-	Title string `json:"title"`
-	CourseId int `json:"course_id"`
+	UID      int    `json:"uid"`
+	Id       int    `json:"id"`
+	Title    string `json:"title"`
+	CourseId int    `json:"course_id"`
 }
 
 /**
@@ -118,7 +118,7 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 /**
 获取课程详情信息
  */
-func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.UserCourse, err error) {
+func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
 
 	params := r.URL.Query()
 
@@ -132,31 +132,18 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.UserCour
 
 	where["id"] = id
 	where["type"] = courseType
+	where["status"] = "published"
 
-	//var detailTemp models.Detail
-
-	var userCourse models.UserCourse
-
-	var tempWhere = make(map[string]interface{})
-	tempWhere["id"] = 1
-
-	var result []Result
-
+	//利用go 的ORM查找的话，限制条件太多了，相比Laravel的ORM操作，要麻烦很多，所以推荐用类似于Laravel的查询构造器进行数据的查询，但是有个问题就是怎么给表取别名类似as操作，go里面好像不行，还有就是设置默认表前缀是不能在这里用的
 	//baseOrm.GetDB().Model(&userCourse).Where(tempWhere).Related(&userCourse.Course).Find(&userCourse)
 
-	baseOrm.GetDB().Table("h_user_course").Joins("join h_edu_courses on h_user_course.course_id = h_edu_courses.id").Where("h_user_course.user_id = ?", 2).Select("h_user_course.user_id as uid, h_edu_courses.id as course_id").Scan(&result)
+	baseOrm.GetDB().
+		Table("h_edu_courses").
+		Joins("left join h_user_course on h_user_course.course_id = h_edu_courses.id").
+		Where(where).
+		Where("h_user_course.user_id = ?", 2).
+		Select("h_edu_courses.*, h_user_course.id as buy_id, h_user_course.schedule").
+		Find(&detail)
 
-	log.Printf("the relatived data is:%v", result)
-
-	return userCourse, nil
-
-
-
-	/*if err = baseOrm.GetDB().Table("h_edu_courses").Where(where).Find(&detailTemp.Course).Error; err != nil {
-		return detail, err
-	}
-
-	log.Printf("the detail is:%v\n", detailTemp)
-
-	return detailTemp, nil*/
+	return detail, nil
 }

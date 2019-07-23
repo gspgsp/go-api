@@ -6,10 +6,7 @@ import (
 	"edu_api/utils"
 	"log"
 	"strconv"
-)
-
-var (
-	where = make(map[string]interface{})
+	"net/http"
 )
 
 type Result struct {
@@ -31,6 +28,7 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 		defaultLimit  = 20
 		defaultOffset = 0
 		not           = make(map[string]interface{})
+		where         = make(map[string]interface{})
 	)
 
 	params := r.URL.Query()
@@ -120,8 +118,22 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
  */
 func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
 
-	params := r.URL.Query()
+	var (
+		where  = make(map[string]interface{})
+		header http.Header
+		accessToken string
+	)
 
+	header = r.Header
+	if _, ok := header["Authorization"]; ok {
+		for _, v := range header["Authorization"]{
+			accessToken = v
+		}
+	}
+
+	log.Printf("the access_token is:%v", accessToken)
+
+	params := r.URL.Query()
 	courseType := params.Get("type")
 
 	id, err := strconv.Atoi(r.PathParam("id"))

@@ -19,7 +19,7 @@ func (login *LoginController) Login(w rest.ResponseWriter, r *rest.Request) {
 	controllers.ReturnJson = make(map[string]interface{})
 	if login.controller.Err != nil {
 		controllers.ReturnJson["code"] = 404
-		controllers.ReturnJson["msg"] = login.controller.Err
+		controllers.ReturnJson["msg"] = login.controller.Err.Error()
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"

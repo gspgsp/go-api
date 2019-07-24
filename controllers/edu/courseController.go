@@ -46,6 +46,7 @@ func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.R
 
 	detail, course.controller.Err = course.controller.BaseOrm.GetCourseDetail(r)
 
+	controllers.ReturnJson = make(map[string]interface{})
 	if course.controller.Err != nil {
 		controllers.ReturnJson["code"] = 404
 		controllers.ReturnJson["msg"] = course.controller.Err.Error()

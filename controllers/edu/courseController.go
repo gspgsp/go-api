@@ -24,6 +24,7 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 	courses, course.controller.Err = course.controller.BaseOrm.CourseList(r)
 
+	controllers.ReturnJson = make(map[string]interface{})
 	if course.controller.Err != nil {
 		log.Println("query error", course.controller.Err)
 	} else {
@@ -47,7 +48,7 @@ func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.R
 
 	if course.controller.Err != nil {
 		controllers.ReturnJson["code"] = 404
-		controllers.ReturnJson["msg"] = course.controller.Err
+		controllers.ReturnJson["msg"] = course.controller.Err.Error()
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
@@ -69,7 +70,7 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 
 	if course.controller.Err != nil {
 		controllers.ReturnJson["code"] = 404
-		controllers.ReturnJson["msg"] = course.controller.Err
+		controllers.ReturnJson["msg"] = course.controller.Err.Error()
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"

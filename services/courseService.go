@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"net/http"
+	jwt2 "github.com/dgrijalva/jwt-go"
 )
 
 type Result struct {
@@ -119,19 +120,33 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
 
 	var (
-		where  = make(map[string]interface{})
-		header http.Header
+		where       = make(map[string]interface{})
+		header      http.Header
 		accessToken string
+		j           models.JwtClaim
+		userId      float64
 	)
 
 	header = r.Header
 	if _, ok := header["Authorization"]; ok {
-		for _, v := range header["Authorization"]{
+		for _, v := range header["Authorization"] {
 			accessToken = v
 		}
-	}
 
-	log.Printf("the access_token is:%v", accessToken)
+		token, err := j.VerifyToken(accessToken)
+
+		if err != nil {
+			return detail, err
+		}
+
+		//这里必须要转一下类型,不然取不出来,自定义的id,这里一开始不知道token.Claims.(jwt2.MapClaims)["id"]返回值类型，所以token.Claims.(jwt2.MapClaims)["id"].(int),测了一下，结果报错了，说是不能将float64转化为int,就知道了是float64类型
+		//也可以用断言，但是断言有个问题，就是case得到的结果，value赋值的问题，比如userId 我声明的是float64，要是有多个case的话，就需要多种类型的变量去接，
+		//不能 case string:userId = value case int:userId = value
+		switch value := token.Claims.(jwt2.MapClaims)["id"].(type) {
+		case float64:
+			userId = value
+		}
+	}
 
 	params := r.URL.Query()
 	courseType := params.Get("type")
@@ -149,13 +164,20 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 	//利用go 的ORM查找的话，限制条件太多了，相比Laravel的ORM操作，要麻烦很多，所以推荐用类似于Laravel的查询构造器进行数据的查询，但是有个问题就是怎么给表取别名类似as操作，go里面好像不行，还有就是设置默认表前缀是不能在这里用的
 	//baseOrm.GetDB().Model(&userCourse).Where(tempWhere).Related(&userCourse.Course).Find(&userCourse)
 
-	baseOrm.GetDB().
-		Table("h_edu_courses").
-		Joins("left join h_user_course on h_user_course.course_id = h_edu_courses.id").
-		Where(where).
-		Where("h_user_course.user_id = ?", 2).
-		Select("h_edu_courses.*, h_user_course.id as buy_id, h_user_course.schedule").
-		Find(&detail)
+	if userId > 0 {
+		baseOrm.GetDB().
+			Table("h_edu_courses").
+			Joins("left join h_user_course on h_user_course.course_id = h_edu_courses.id").
+			Where(where).
+			Where("h_user_course.user_id = ?", userId).
+			Select("h_edu_courses.*, h_user_course.id as buy_id, h_user_course.schedule").
+			Find(&detail)
+	}else {
+		baseOrm.GetDB().
+			Table("h_edu_courses").
+			Where(where).
+			Find(&detail)
+	}
 
 	return detail, nil
 }

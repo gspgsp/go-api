@@ -24,6 +24,8 @@ func (category *CategoryController) GetCategory(w rest.ResponseWriter, r *rest.R
 
 	categories, category.controller.Err = category.controller.BaseOrm.CategoryList()
 
+	controllers.ReturnJson = make(map[string]interface{})
+
 	if category.controller.Err != nil {
 		log.Println("query error", category.controller.Err)
 	} else {

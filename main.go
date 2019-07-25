@@ -15,6 +15,24 @@ func main()  {
 
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack ...)
+
+	//tokenAuthMiddleware := rest.Middleware()
+	//
+	/*api.Use(&rest.IfMiddleware{
+		Condition: func(request *rest.Request) bool {
+			var arr = []string{
+				"/login","/register",
+			}
+			for _, item := range arr {
+				if item == request.URL.Path {
+					return false
+				}
+			}
+			return true
+		},
+		IfTrue: tokenAuthMiddleware,
+	})*/
+
 	router, err := rest.MakeRouter(
 		rest.Post("/login", new(auth.LoginController).Login),
 		rest.Get("/category", new(edu.CategoryController).GetCategory),//课程分类 这里传的是函数名称不需要(),只用传入方法名称

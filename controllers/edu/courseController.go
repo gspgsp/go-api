@@ -69,6 +69,7 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 
 	packages, course.controller.Err = course.controller.BaseOrm.PackageList(r)
 
+	controllers.ReturnJson = make(map[string]interface{})
 	if course.controller.Err != nil {
 		controllers.ReturnJson["code"] = 404
 		controllers.ReturnJson["msg"] = course.controller.Err.Error()

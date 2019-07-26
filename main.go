@@ -7,6 +7,8 @@ import (
 	"edu_api/controllers/edu"
 	"edu_api/services"
 	"edu_api/controllers/auth"
+	"edu_api/middlewares"
+	"regexp"
 )
 
 func main()  {
@@ -16,22 +18,30 @@ func main()  {
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack ...)
 
-	//tokenAuthMiddleware := rest.Middleware()
-	//
-	/*api.Use(&rest.IfMiddleware{
+	//初始化中间件
+	authTokenMiddleware := new(middlewares.AuthTokenMiddleware)//或者&middlewares.AuthTokenMiddleware{}
+
+	api.Use(&rest.IfMiddleware{
 		Condition: func(request *rest.Request) bool {
-			var arr = []string{
-				"/login","/register",
-			}
-			for _, item := range arr {
-				if item == request.URL.Path {
-					return false
+
+			path := request.URL.Path
+
+			expr := `(/login)||(/register)||(/package)||(/course)`
+			re, _ := regexp.Compile(expr)
+
+			all := re.FindAllString(path, -1)
+
+			for _,item := range all{
+				log.Printf("the item is:%v", string(item))
+				if len(string(item)) > 0 {
+					return  false
 				}
 			}
+
 			return true
 		},
-		IfTrue: tokenAuthMiddleware,
-	})*/
+		IfTrue: authTokenMiddleware,
+	})
 
 	router, err := rest.MakeRouter(
 		rest.Post("/login", new(auth.LoginController).Login),

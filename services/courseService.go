@@ -172,7 +172,7 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 			Where("h_user_course.user_id = ?", userId).
 			Select("h_edu_courses.*, h_user_course.id as buy_id, h_user_course.schedule").
 			Find(&detail)
-	}else {
+	} else {
 		baseOrm.GetDB().
 			Table("h_edu_courses").
 			Where(where).
@@ -180,4 +180,26 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 	}
 
 	return detail, nil
+}
+
+func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Chapter, err error) {
+	var (
+		tmpChapter []models.Chapter
+		where      = make(map[string]interface{})
+	)
+
+	id, err := strconv.Atoi(r.PathParam("id"))
+	if err != nil {
+		return tmpChapter, err
+	}
+
+	where["course_id"] = id
+
+	if err := baseOrm.GetDB().Table("h_edu_chapters").Where(where).Find(&tmpChapter).Error; err != nil {
+		return nil, err
+	}
+
+	//对当前分类进行无限极分类排序
+
+	return tmpChapter, nil
 }

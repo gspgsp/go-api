@@ -81,3 +81,26 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 
 	w.WriteJson(controllers.ReturnJson)
 }
+
+/**
+获取课程章节
+ */
+func (course *CourseController) GetCourseChapter(w rest.ResponseWriter, r *rest.Request) {
+	var (
+		chapters []models.Chapter
+	)
+
+	chapters, course.controller.Err = course.controller.BaseOrm.GetCourseChapter(r)
+
+	controllers.ReturnJson = make(map[string]interface{})
+	if course.controller.Err != nil {
+		controllers.ReturnJson["code"] = 404
+		controllers.ReturnJson["msg"] = course.controller.Err.Error()
+	} else {
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["chapters"] = chapters
+	}
+
+	w.WriteJson(controllers.ReturnJson)
+}

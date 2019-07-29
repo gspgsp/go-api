@@ -26,7 +26,7 @@ func main()  {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)
@@ -46,7 +46,8 @@ func main()  {
 	router, err := rest.MakeRouter(
 		rest.Post("/login", new(auth.LoginController).Login),
 		rest.Get("/category", new(edu.CategoryController).GetCategory),//课程分类 这里传的是函数名称不需要(),只用传入方法名称
-		rest.Get("/course", new(edu.CourseController).GetCourseList),//课程列表
+		rest.Get("/course/list", new(edu.CourseController).GetCourseList),//课程列表
+		rest.Get("/chapter/:id", new(edu.CourseController).GetCourseChapter),//课程章节
 		rest.Get("/package", new(edu.CourseController).GetPackageList),//套餐列表
 		rest.Get("/course/:id", new(edu.CourseController).GetCourseDetail),//课程详情
 	)

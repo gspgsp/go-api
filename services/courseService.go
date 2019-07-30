@@ -194,13 +194,14 @@ func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Cha
 	}
 
 	where["course_id"] = id
+	where["status"] = "published"
 
 	if err := baseOrm.GetDB().Table("h_edu_chapters").Where(where).Find(&tmpChapter).Error; err != nil {
 		return nil, err
 	}
 
 	//对当前分类进行无限极分类排序
-	res := trees(tmpChapter)
+	res := Trees(tmpChapter)
 
-	return  res.([]models.Chapter), nil
+	return res.([]models.Chapter), nil
 }

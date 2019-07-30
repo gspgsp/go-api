@@ -134,7 +134,7 @@ func formatCores(index int, data interface{}) interface{} {
 
 		for id, item := range value[index] {
 			if value[id] != nil {
-				//用当前id去取值，parent_id会和id对应起来
+				//用当前id去取值，parent_id会和id对应起来，注意interface{}==>指定类型的转换
 				item.Children = formatCores(id, value).([]models.Category)
 			}
 

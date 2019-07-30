@@ -19,5 +19,6 @@ func (baseOrm *BaseOrm) CategoryList() (category []models.Category, err error) {
 	//对当前分类进行无限极分类排序
 	res := Trees(tmpCategory)
 
+	//注意interface{}==>指定类型的转换
 	return res.([]models.Category), nil
 }

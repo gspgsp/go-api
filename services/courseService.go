@@ -182,6 +182,9 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 	return detail, nil
 }
 
+/**
+获取课程章节
+ */
 func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Chapter, err error) {
 	var (
 		tmpChapter []models.Chapter

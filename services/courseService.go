@@ -200,6 +200,7 @@ func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Cha
 	}
 
 	//对当前分类进行无限极分类排序
+	res := trees(tmpChapter)
 
-	return tmpChapter, nil
+	return  res.([]models.Chapter), nil
 }

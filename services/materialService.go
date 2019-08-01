@@ -8,7 +8,6 @@ import (
 	"net/http"
 	jwt2 "github.com/dgrijalva/jwt-go"
 	"errors"
-	"log"
 )
 
 /**
@@ -48,13 +47,14 @@ func (baseOrm *BaseOrm) GetMaterialList(r *rest.Request) (material []models.Mate
 	}
 
 	//查看当前课程类型
-	courseType, _ := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", id).Get("type")
+	var types []string
+	baseOrm.GetDB().Table("h_edu_courses").Select("type").Where("id = ?", id).Pluck("type", &types)
 
-	log.Printf("the type is:%v", courseType)
-
-	if courseType == nil {
+	if types == nil {
 		return material, errors.New("当前课程类型不存在")
 	}
+
+	courseType := types[0]
 
 	if courseType != "free" {
 		var (
@@ -82,15 +82,18 @@ func (baseOrm *BaseOrm) GetMaterialList(r *rest.Request) (material []models.Mate
 			}
 
 			//当前课程是否会员免费
-			level, _ := baseOrm.GetDB().Table("h_users").Where("id = ?", userId).Get("level")
+			var levels []string
+			baseOrm.GetDB().Table("h_users").Where("id = ?", userId).Pluck("level", &levels)
 
 			//是否会员免费
-			vip_level, _ := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", id).Get("vip_level")
+			var vip_levels []int
+			baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", id).Pluck("vip_level", &vip_levels)
 
 			//查看用户是否购买过当前课程
-			user_course_id, _ := baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", userId, id).Get("id")
+			var ids []int
+			baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", userId, id).Pluck("id", &ids)
 
-			if ((level == "vip1" || level == "vip2") && vip_level == 1) || user_course_id.(int) > 0 {
+			if ((levels[0] == "vip1" || levels[0] == "vip2") && vip_levels[0] == 1) || ids[0] > 0 {
 				//直接查询
 				if err := baseOrm.GetDB().Table("h_edu_materials").Where("course_id = ?", id).Select("id, title, size, type, download_num, course_id").Limit(defaultLimit).Offset(defaultOffset).Find(&material).Error; err != nil {
 					return material, err
@@ -98,6 +101,8 @@ func (baseOrm *BaseOrm) GetMaterialList(r *rest.Request) (material []models.Mate
 			} else {
 				return material, errors.New("未购买当前课程")
 			}
+		} else {
+			return material, errors.New(utils.TOKEN_PARAM_REQUIRE)
 		}
 	} else {
 		//直接查询

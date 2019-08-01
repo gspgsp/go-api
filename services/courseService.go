@@ -37,7 +37,6 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 	intLimit, _ := strconv.Atoi(limit)
 
 	page := params.Get("page")
-
 	intPage, _ := strconv.Atoi(page)
 
 	//如果传了limit那么就限制取值数量,如果传了page那么就分页查询,么次必须只能穿一个

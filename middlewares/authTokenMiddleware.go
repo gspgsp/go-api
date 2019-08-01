@@ -23,6 +23,7 @@ func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Ha
 		authHeader := request.Header.Get("Authorization")
 		log.Printf("the auth header is:%v", authHeader)
 
+
 		//相当于next()
 		handler(writer, request)
 	}

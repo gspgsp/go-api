@@ -9,6 +9,7 @@ import (
 	"edu_api/controllers/auth"
 	"edu_api/middlewares"
 	"regexp"
+	"edu_api/controllers/user"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func main() {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)
@@ -51,6 +52,7 @@ func main() {
 		rest.Get("/package", new(edu.CourseController).GetPackageList),         //套餐列表
 		rest.Get("/course/:id", new(edu.CourseController).GetCourseDetail),     //课程详情
 		rest.Get("/material/:id", new(edu.MaterialController).GetMaterialList), //资料列表
+		rest.Get("/lecture/:id", new(user.UserController).GetLecturerList),     //讲师列表
 	)
 
 	if err != nil {

@@ -76,7 +76,7 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["courses"] = packages
+		controllers.ReturnJson["packages"] = packages
 	}
 
 	w.WriteJson(controllers.ReturnJson)
@@ -100,6 +100,27 @@ func (course *CourseController) GetCourseChapter(w rest.ResponseWriter, r *rest.
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
 		controllers.ReturnJson["chapters"] = chapters
+	}
+
+	w.WriteJson(controllers.ReturnJson)
+}
+
+/**
+课程评价列表
+ */
+func (course *CourseController) GetCourseReview(w rest.ResponseWriter, r *rest.Request) {
+	var reviews []models.Review
+
+	reviews, course.controller.Err = course.controller.BaseOrm.GetCourseReview(r)
+
+	controllers.ReturnJson = make(map[string]interface{})
+	if course.controller.Err != nil {
+		controllers.ReturnJson["code"] = 404
+		controllers.ReturnJson["msg"] = course.controller.Err.Error()
+	} else {
+		controllers.ReturnJson["code"] = 0
+		controllers.ReturnJson["msg"] = "query successfully!"
+		controllers.ReturnJson["reviews"] = reviews
 	}
 
 	w.WriteJson(controllers.ReturnJson)

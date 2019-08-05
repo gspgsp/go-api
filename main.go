@@ -27,7 +27,7 @@ func main() {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)
@@ -53,6 +53,7 @@ func main() {
 		rest.Get("/course/:id", new(edu.CourseController).GetCourseDetail),     //课程详情
 		rest.Get("/material/:id", new(edu.MaterialController).GetMaterialList), //资料列表
 		rest.Get("/lecture/:id", new(user.UserController).GetLecturerList),     //讲师列表
+		rest.Get("/review/:id", new(edu.CourseController).GetCourseReview),     //评价列表
 	)
 
 	if err != nil {

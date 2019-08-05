@@ -28,7 +28,7 @@ func (material *MaterialController) GetMaterialList(w rest.ResponseWriter, r *re
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["chapters"] = materials
+		controllers.ReturnJson["materials"] = materials
 	}
 
 	w.WriteJson(controllers.ReturnJson)

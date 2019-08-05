@@ -27,7 +27,7 @@ func (user *UserController) GetLecturerList(w rest.ResponseWriter, r *rest.Reque
 	} else {
 		controllers.ReturnJson["code"] = 0
 		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["courses"] = lecturers
+		controllers.ReturnJson["lecturers"] = lecturers
 
 		w.WriteJson(controllers.ReturnJson)
 	}

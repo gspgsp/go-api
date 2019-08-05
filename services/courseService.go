@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"net/http"
 	jwt2 "github.com/dgrijalva/jwt-go"
+	"errors"
 )
 
 type Result struct {
@@ -206,4 +207,54 @@ func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Cha
 	res := Trees(tmpChapter)
 
 	return res.([]models.Chapter), nil
+}
+
+/**
+评价列表
+ */
+func (baseOrm *BaseOrm) GetCourseReview(r *rest.Request) (reviews []models.Review, err error) {
+
+	var (
+		defaultLimit  = 20
+		defaultOffset = 0
+	)
+
+	id, err := strconv.Atoi(r.PathParam("id"))
+	if err != nil {
+		return
+	}
+
+	params := r.URL.Query()
+	limit := params.Get("limit")
+	intLimit, _ := strconv.Atoi(limit)
+
+	page := params.Get("page")
+	intPage, _ := strconv.Atoi(page)
+
+	//如果传了limit那么就限制取值数量,如果传了page那么就分页查询,么次必须只能穿一个
+	if intLimit > 0 {
+		defaultLimit = intLimit
+		defaultOffset = 0
+	} else if intPage > 0 {
+		if intPage > 1 {
+			defaultOffset = (intPage - 1) * defaultLimit
+		} else {
+			defaultOffset = 0
+		}
+	} else {
+		return reviews, errors.New("limit/page 参数必须")
+	}
+
+	if err := baseOrm.GetDB().
+		Table("h_user_course").
+		Where("course_id = ?", id).
+		Select("id, anonymous, rating, practical_rating, popular_rating, logic_rating, status, review, reply, reviewed_at, reply_at, course_id").
+		Limit(defaultLimit).
+		Offset(defaultOffset).
+		Find(&reviews).
+		Error; err != nil {
+		return reviews, err
+	}
+
+	return
 }

@@ -25,7 +25,16 @@ func init() {
 /**
 自定义返回json体
  */
-func JsonReturn() interface{} {
+func JsonReturn(baseControl Controller, key interface{}, value interface{}) interface{} {
+
+	if baseControl.Err != nil {
+		ReturnJson["code"] = 404
+		ReturnJson["msg"] = baseControl.Err.Error()
+	} else {
+		ReturnJson["code"] = 0
+		ReturnJson["msg"] = "query successfully!"
+		//ReturnJson[key] = value
+	}
 
 	/*controllers.ReturnJson = make(map[string]interface{})
 
@@ -37,9 +46,6 @@ func JsonReturn() interface{} {
 		controllers.ReturnJson["msg"] = "query successfully!"
 		controllers.ReturnJson["reviews"] = reviews
 	}*/
-
-
-
 
 	return nil
 }

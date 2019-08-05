@@ -37,7 +37,8 @@ func (baseOrm *BaseOrm) LecturerList(r *rest.Request) (lectures []models.User, e
 						Find(&lectures)
 
 	for index, _ := range lectures {
-		lectures[index].Title = userTitle[0]
+
+		lectures[index].Title = userTitle[lectures[index].Title.(int64):1][0]
 	}
 
 	return

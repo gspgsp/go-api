@@ -21,14 +21,5 @@ func (user *UserController) GetLecturerList(w rest.ResponseWriter, r *rest.Reque
 
 	lecturers, user.controller.Err = user.controller.BaseOrm.LecturerList(r)
 
-	controllers.ReturnJson = make(map[string]interface{})
-	if user.controller.Err != nil {
-		log.Println("query error", user.controller.Err.Error())
-	} else {
-		controllers.ReturnJson["code"] = 0
-		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["lecturers"] = lecturers
-
-		w.WriteJson(controllers.ReturnJson)
-	}
+	user.controller.JsonReturn(w, user.controller, "lecturers", lecturers)
 }

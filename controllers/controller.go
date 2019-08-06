@@ -1,6 +1,9 @@
 package controllers
 
-import "edu_api/services"
+import (
+	"edu_api/services"
+	"github.com/ant0ine/go-json-rest/rest"
+)
 
 /**
 控制器下的全局变量
@@ -18,14 +21,17 @@ type Controller struct {
 /**
 初始化方法
  */
-func init() {
+func (that *Controller) init() {
 	ReturnJson = make(map[string]interface{})
 }
 
 /**
 自定义返回json体
  */
-func JsonReturn(baseControl Controller, key interface{}, value interface{}) interface{} {
+func (that *Controller) JsonReturn(w rest.ResponseWriter, baseControl Controller, key interface{}, value interface{}) interface{} {
+
+	//重新初始化
+	that.init()
 
 	if baseControl.Err != nil {
 		ReturnJson["code"] = 404
@@ -33,19 +39,10 @@ func JsonReturn(baseControl Controller, key interface{}, value interface{}) inte
 	} else {
 		ReturnJson["code"] = 0
 		ReturnJson["msg"] = "query successfully!"
-		//ReturnJson[key] = value
+		ReturnJson[key.(string)] = value
 	}
 
-	/*controllers.ReturnJson = make(map[string]interface{})
-
-	if course.controller.Err != nil {
-		controllers.ReturnJson["code"] = 404
-		controllers.ReturnJson["msg"] = course.controller.Err.Error()
-	} else {
-		controllers.ReturnJson["code"] = 0
-		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["reviews"] = reviews
-	}*/
+	w.WriteJson(ReturnJson)
 
 	return nil
 }

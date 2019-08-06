@@ -21,15 +21,5 @@ func (material *MaterialController) GetMaterialList(w rest.ResponseWriter, r *re
 
 	materials, material.controller.Err = material.controller.BaseOrm.GetMaterialList(r)
 
-	controllers.ReturnJson = make(map[string]interface{})
-	if material.controller.Err != nil {
-		controllers.ReturnJson["code"] = 404
-		controllers.ReturnJson["msg"] = material.controller.Err.Error()
-	} else {
-		controllers.ReturnJson["code"] = 0
-		controllers.ReturnJson["msg"] = "query successfully!"
-		controllers.ReturnJson["materials"] = materials
-	}
-
-	w.WriteJson(controllers.ReturnJson)
+	material.controller.JsonReturn(w, material.controller, "materials", materials)
 }

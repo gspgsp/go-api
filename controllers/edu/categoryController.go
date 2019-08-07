@@ -2,7 +2,6 @@ package edu
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"log"
 	"edu_api/models"
 	"edu_api/controllers"
 )

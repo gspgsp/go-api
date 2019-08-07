@@ -4,7 +4,6 @@ import (
 	"edu_api/controllers"
 	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
-	"log"
 )
 
 type UserController struct {

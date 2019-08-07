@@ -258,3 +258,58 @@ func (baseOrm *BaseOrm) GetCourseReview(r *rest.Request) (reviews []models.Revie
 
 	return
 }
+
+/**
+获取推荐课
+ */
+func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models.Recommend, err error) {
+	var (
+		defaultLimit = 4
+	)
+
+	id, err := strconv.Atoi(r.PathParam("id"))
+	if err != nil {
+		return
+	}
+
+	params := r.URL.Query()
+	limit := params.Get("limit")
+	intLimit, _ := strconv.Atoi(limit)
+
+	//如果传了limit那么就限制取值数量
+	if intLimit > 0 {
+		defaultLimit = intLimit
+	}
+
+	tagIds, err := baseOrm.GetDB().Raw("select t.id from h_tags t where exists (select 1 from h_taggables t_g inner join h_edu_courses c on c.id = t_g.taggable_id where t_g.tag_id = t.id and c.id = ?)", id).Rows()
+
+	defer tagIds.Close()
+
+	//临时变量，存储tagId
+	var temp interface{}
+	channel := make(chan int64, 10)
+
+	//必须调用一次Next，不能直接调用Scan取值
+	for tagIds.Next() {
+		tagIds.Scan(&temp)
+
+		//对当前temp进行处理，准备通过goroutine获取对应tag下的课程
+		go test(channel ,temp.(int64))
+
+		log.Printf("the default limit is:%d", defaultLimit)
+	}
+
+	//处理channel
+	for val := range channel{
+		log.Printf("the channel is:%v\n", val)
+	}
+
+	return
+}
+
+func test(channel chan int64,tagId int64) {
+
+	channel <- tagId
+
+	log.Printf("the current routine's tagId is:%d\n", tagId)
+}

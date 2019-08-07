@@ -28,9 +28,9 @@ func (that *Controller) init() {
 /**
 自定义返回json体
  */
-func (that *Controller) JsonReturn(w rest.ResponseWriter, baseControl Controller, key interface{}, value interface{}) interface{} {
+func (that *Controller) JsonReturn(w rest.ResponseWriter, baseControl Controller, key interface{}, value interface{}) {
 
-	//重新初始化
+	//重新初始化，因为在main函数的时候，只会调用一次，以后不会再调用，所以限制成当前控制器的方法，重新初始化，否则ReturnJson map里的元素会越来越多
 	that.init()
 
 	if baseControl.Err != nil {
@@ -43,6 +43,4 @@ func (that *Controller) JsonReturn(w rest.ResponseWriter, baseControl Controller
 	}
 
 	w.WriteJson(ReturnJson)
-
-	return nil
 }

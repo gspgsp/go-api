@@ -282,9 +282,6 @@ func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models
 		defaultLimit = intLimit
 	}
 
-	//
-	log.Printf("the limit is:%v", defaultLimit)
-
 	//利用find方法，必须要有模型存储返回数据
 	type tag struct {
 		Id int `json:"id"`
@@ -292,7 +289,7 @@ func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models
 
 	var tags []tag
 
-	if err := baseOrm.GetDB().Raw("select t.id from h_tags t where exists (select 1 from h_taggables t_g inner join h_edu_courses c on c.id = t_g.taggable_id where t_g.tag_id = t.id and c.id = ?)", id).Find(&tags).Error; err != nil {
+	if err := baseOrm.GetDB().Raw("select t.id from h_tags t where exists (select 1 from h_taggables t_g inner join h_edu_courses c on c.id = t_g.taggable_id where t_g.tag_id = t.id and c.id = ? and c.status = 'published')", id).Find(&tags).Error; err != nil {
 		return nil, err
 	}
 
@@ -302,7 +299,11 @@ func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models
 	number := 0
 
 	if len(tags) == 0 {
-		//TODO::当前课程如果没有标签，就从具有推荐属性的课程获取(不区分类型，包括免费和精品)
+		//当前课程如果没有标签，就从具有推荐属性的课程获取(不区分类型，包括免费和精品)
+		if err := baseOrm.GetDB().Table("h_edu_courses").Where("type in ('free', 'boutique') and status = 'published' and is_recommended = 1").Limit(defaultLimit).Find(&recommends).Error; err != nil {
+			return nil, err
+		}
+
 		return
 	}
 
@@ -346,7 +347,38 @@ GetChannelData:
 		}
 	}
 
-	return RemoveDuplicateSlice(recommends), nil
+	temp := RemoveDuplicateSlice(recommends)
+
+	if len(temp) >= defaultLimit {
+		return temp[0:defaultLimit], nil
+	} else {
+		//补充带标签的推荐课程
+		external := make([]models.Recommend, defaultLimit)
+		exceptIds := []int{id}
+
+		for index, _ := range temp {
+			exceptIds = append(exceptIds, temp[index].Id)
+		}
+
+		if err := baseOrm.GetDB().
+			Table("h_edu_courses").
+			Where("type in ('free', 'boutique') and status = 'published' and is_recommended = 1 and id not in (?) ", exceptIds).
+			Limit(defaultLimit - len(temp)).Select("id, type, title, price, vip_price, discount, discount_end_at, cover_picture, learn_num, buy_num").
+			Find(&external).
+			Error; err != nil {
+			//没有三目运算，只能if else
+			if len(temp) > 0 {
+				return temp, err
+			} else {
+				return nil, err
+			}
+		} else {
+			for _, val := range external {
+				temp = append(temp, val)
+			}
+			return temp, nil
+		}
+	}
 }
 
 /**
@@ -365,7 +397,9 @@ func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId i
 	select * from h_edu_courses where exists (select tag_id from h_taggables where tag_id = 7 and taggable_id != 106 and h_taggables.taggable_id = h_edu_courses.id);
 	select * from h_edu_courses inner join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = 7 and taggable_id != 106;
 	*/
-	baseOrm.GetDB().Raw("select * from h_edu_courses left join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = ? and taggable_id != ?;", tagId, id).Find(&recommend)
+	baseOrm.GetDB().
+		Raw("select id, type, title, price, vip_price, discount, discount_end_at, cover_picture, learn_num, buy_num from h_edu_courses left join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = ? and taggable_id != ?;", tagId, id).
+		Find(&recommend)
 
 	//简单的读取操作
 	channel <- recommend

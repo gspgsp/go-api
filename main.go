@@ -27,7 +27,7 @@ func main() {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)|(/recommend[/\d+]?)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)

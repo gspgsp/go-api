@@ -4,7 +4,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
 	"edu_api/controllers"
-	"log"
 )
 
 /**
@@ -85,5 +84,5 @@ func (course *CourseController) GetRecommendCourse(w rest.ResponseWriter, r *res
 
 	recommends, course.controller.Err = course.controller.BaseOrm.GetRecommendCourse(r)
 
-	log.Printf("the recommend is:%v", recommends)
+	course.controller.JsonReturn(w, course.controller, "recommends", recommends)
 }

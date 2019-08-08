@@ -281,35 +281,89 @@ func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models
 		defaultLimit = intLimit
 	}
 
-	tagIds, err := baseOrm.GetDB().Raw("select t.id from h_tags t where exists (select 1 from h_taggables t_g inner join h_edu_courses c on c.id = t_g.taggable_id where t_g.tag_id = t.id and c.id = ?)", id).Rows()
+	//
+	log.Printf("the limit is:%v", defaultLimit)
 
-	defer tagIds.Close()
-
-	//临时变量，存储tagId
-	var temp interface{}
-	channel := make(chan int64, 10)
-
-	//必须调用一次Next，不能直接调用Scan取值
-	for tagIds.Next() {
-		tagIds.Scan(&temp)
-
-		//对当前temp进行处理，准备通过goroutine获取对应tag下的课程
-		go test(channel ,temp.(int64))
-
-		log.Printf("the default limit is:%d", defaultLimit)
+	//利用find方法，必须要有模型存储返回数据
+	type tag struct {
+		Id int `json:"id"`
 	}
 
+	var tags []tag
+
+	if err := baseOrm.GetDB().Raw("select t.id from h_tags t where exists (select 1 from h_taggables t_g inner join h_edu_courses c on c.id = t_g.taggable_id where t_g.tag_id = t.id and c.id = ?)", id).Find(&tags).Error; err != nil {
+		return nil, err
+	}
+
+	channel := make(chan []models.Recommend, 4)
+	endChannel := make(chan bool)
+	endNumber := 0
+	number := 0
+
+	if len(tags) == 0 {
+		//TODO::当前课程如果没有标签，就从具有推荐属性的课程获取(不区分类型，包括免费和精品)
+		return
+	}
+
+	number = len(tags)
+
+	//通过goroutine获取数据
+	for _, val := range tags {
+		go getRecommend(channel, endChannel, val.Id, id, baseOrm)
+	}
+
+	//开始准备用Rows方法获取数据的，但是后来没法获取数据的长度，来给number赋值，所以还是用Find()方法
+	//必须调用一次Next，不能直接调用Scan取值
+	//for tagIds.Next() {
+	//	tagIds.Scan(&temp)
+	//
+	//	//对当前temp进行处理，准备通过goroutine获取对应tag下的课程
+	//	go test(channel, endChannel, temp.(int64))
+	//
+	//}
+
 	//处理channel
-	for val := range channel{
-		log.Printf("the channel is:%v\n", val)
+GetChannelData:
+	for {
+		select {
+		case v, ok := <-channel:
+			if ok {
+
+				for _, val := range v {
+					recommends = append(recommends, val)
+				}
+			} else {
+				log.Printf("read channel error")
+			}
+		case <-endChannel:
+
+			endNumber++
+
+			if endNumber == number {
+				close(channel)
+				break GetChannelData
+			}
+		}
 	}
 
 	return
 }
 
-func test(channel chan int64,tagId int64) {
+func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId int, id int, baseOrm *BaseOrm) {
 
-	channel <- tagId
+	defer func() {
+		endChannel <- true
+	}()
 
-	log.Printf("the current routine's tagId is:%d\n", tagId)
+	var recommend []models.Recommend
+	//这个子查询in 和 exists效率差不多 还是join查询快一点(少了一层子结果集扫描)
+	/*
+	select * from h_edu_courses where id in (select taggable_id from h_taggables where tag_id = 7 and taggable_id != 106);
+	select * from h_edu_courses where exists (select tag_id from h_taggables where tag_id = 7 and taggable_id != 106 and h_taggables.taggable_id = h_edu_courses.id);
+	select * from h_edu_courses inner join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = 7 and taggable_id != 106;
+	*/
+	baseOrm.GetDB().Raw("select * from h_edu_courses left join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = ? and taggable_id != ?;", tagId, id).Find(&recommend)
+
+	//简单的读取操作
+	channel <- recommend
 }

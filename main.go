@@ -55,6 +55,7 @@ func main() {
 		rest.Get("/lecture/:id", new(user.UserController).GetLecturerList),       //讲师列表
 		rest.Get("/review/:id", new(edu.CourseController).GetCourseReview),       //评价列表
 		rest.Get("/recommend/:id", new(edu.CourseController).GetRecommendCourse), //推荐课程
+		rest.Get("/play/:id", new(edu.PlayController).GetPlayList),               //视频播放
 	)
 
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	jwt2 "github.com/dgrijalva/jwt-go"
 	"errors"
+	"reflect"
 )
 
 type Result struct {
@@ -322,7 +323,6 @@ func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models
 	//
 	//}
 
-	//处理channel
 GetChannelData:
 	for {
 		select {
@@ -346,9 +346,12 @@ GetChannelData:
 		}
 	}
 
-	return
+	return RemoveDuplicateSlice(recommends), nil
 }
 
+/**
+获取相同标签下的推荐课程
+ */
 func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId int, id int, baseOrm *BaseOrm) {
 
 	defer func() {
@@ -356,7 +359,7 @@ func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId i
 	}()
 
 	var recommend []models.Recommend
-	//这个子查询in 和 exists效率差不多 还是join查询快一点(少了一层子结果集扫描)
+	//这个子查询in(少) 和 exists(多)效率差不多 还是join查询快一点(少了一层子结果集扫描)
 	/*
 	select * from h_edu_courses where id in (select taggable_id from h_taggables where tag_id = 7 and taggable_id != 106);
 	select * from h_edu_courses where exists (select tag_id from h_taggables where tag_id = 7 and taggable_id != 106 and h_taggables.taggable_id = h_edu_courses.id);
@@ -366,4 +369,30 @@ func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId i
 
 	//简单的读取操作
 	channel <- recommend
+}
+
+/**
+slice 去重操作(类似冒泡排序), 参数类型不能用interface{},否则返回值没法处理成指定类型
+ */
+func RemoveDuplicateSlice(a []models.Recommend) (ret []models.Recommend) {
+
+	n := len(a)
+
+	for i := 0; i < n; i++ {
+
+		state := false
+
+		for j := i + 1; j < n; j++ {
+			if (j > 0 && reflect.DeepEqual(a[i], a[j])) {
+				state = true
+				continue
+			}
+		}
+
+		if !state {
+			ret = append(ret, a[i])
+		}
+	}
+
+	return
 }

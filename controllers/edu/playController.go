@@ -15,7 +15,7 @@ type PlayController struct {
 }
 
 func (play *PlayController) GetPlayList(w rest.ResponseWriter, r *rest.Request)  {
-	var playLists []models.Chapter
+	var playLists []models.Media
 
 	playLists, play.controller.Err = play.controller.BaseOrm.GetPlayList(r)
 

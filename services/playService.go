@@ -4,10 +4,27 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
 	"strconv"
+	"log"
+	"strings"
+	"edu_api/utils"
 )
 
-var num int64
+var (
+	num   int64
+	learn Learn
+)
 
+type Learn struct {
+	LearnType     int    `json:"learn_type"`
+	LearnIds      string `json:"learn_ids"`
+	LesionType    string `json:"lesion_type,omitempty"`
+	LesionLength  int    `json:"lesion_length,omitempty"`
+	WatchDuration int    `json:"watch_duration,omitempty"`
+}
+
+/**
+获取播放列表
+ */
 func (baseOrm *BaseOrm) GetPlayList(r *rest.Request) (playList models.Media, err error) {
 
 	id, err := strconv.Atoi(r.PathParam("id"))
@@ -74,4 +91,27 @@ func recursion(baseOrm *BaseOrm, parent_id int) (id int) {
 	} else {
 		return recursion(baseOrm, id)
 	}
+}
+
+/**
+a:三级 b/c:二级 d:一级 s:自定义，未点击事件
+ */
+func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
+
+	if err := r.DecodeJsonPayload(&learn); err != nil {
+		//记录错误日志
+	}
+
+	if len(learn.LearnIds) > 0 {
+		chapter_type_array := strings.Split(learn.LearnIds, ":")
+
+		course_id := chapter_type_array[1]
+
+		if _, err := utils.Contain("s", chapter_type_array); err == nil {
+			log.Printf("the course_id is:%v", course_id)
+		} else {
+			log.Printf("the course_id is:%v", "afadsf")
+		}
+	}
+
 }

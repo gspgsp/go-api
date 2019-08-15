@@ -19,3 +19,7 @@ func (play *PlayController) GetPlayList(w rest.ResponseWriter, r *rest.Request) 
 	playLists, play.controller.Err = play.controller.BaseOrm.GetPlayList(r)
 	play.controller.JsonReturn(w, play.controller, "playLists", playLists)
 }
+
+func (play *PlayController) PutCourseLearn(w rest.ResponseWriter, r *rest.Request) {
+	play.controller.BaseOrm.PutCourseLearn(r)
+}

@@ -19,4 +19,4 @@ const TOKEN_SECRET = "196ff70efaf6913f"
 const API_PREFIX = "/api"
 
 //Server Port
-const SERVER_PORT = "8080"
+const SERVER_PORT = "8086"

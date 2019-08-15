@@ -45,6 +45,9 @@ func TransferMaterialSize(s float64) (s_size string) {
 	return
 }
 
+/**
+查找数组、切片或者字典中是否存在某个值
+ */
 func Contain(obj interface{}, target interface{}) (bool, error) {
 
 	targetValue := reflect.ValueOf(target)

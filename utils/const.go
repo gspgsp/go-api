@@ -14,3 +14,9 @@ const TOKEN_TYPE_ERROR = "token加密类型错误"
 
 //加密常量
 const TOKEN_SECRET = "196ff70efaf6913f"
+
+//Api Prefix
+const API_PREFIX = "/api"
+
+//Server Port
+const SERVER_PORT = "8080"

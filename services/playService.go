@@ -4,7 +4,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
 	"strconv"
-	"log"
 	"strings"
 	"edu_api/utils"
 )
@@ -98,20 +97,55 @@ a:三级 b/c:二级 d:一级 s:自定义，未点击事件
  */
 func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 
+	var (
+		chapterId = 0
+		unitId    = 0
+		lessonId  = 0
+	)
+
 	if err := r.DecodeJsonPayload(&learn); err != nil {
 		//记录错误日志
 	}
 
 	if len(learn.LearnIds) > 0 {
-		chapter_type_array := strings.Split(learn.LearnIds, ":")
+		chapterTypeArray := strings.Split(learn.LearnIds, ":")
 
-		course_id := chapter_type_array[1]
+		courseId := chapterTypeArray[1]
 
-		if _, err := utils.Contain("s", chapter_type_array); err == nil {
-			log.Printf("the course_id is:%v", course_id)
-		} else {
-			log.Printf("the course_id is:%v", "afadsf")
+		if _, err := utils.Contain("a", chapterTypeArray); err == nil {
+
+			chapterId, _ = strconv.Atoi(chapterTypeArray[2])
+			unitId, _ = strconv.Atoi(chapterTypeArray[3])
+			lessonId, _ = strconv.Atoi(chapterTypeArray[4])
+
+		} else if _, err := utils.Contain("b", chapterTypeArray); err == nil {
+			chapterId, _ = strconv.Atoi(chapterTypeArray[2])
+			lessonId, _ = strconv.Atoi(chapterTypeArray[3])
+
+		} else if _, err := utils.Contain("c", chapterTypeArray); err == nil {
+			unitId, _ = strconv.Atoi(chapterTypeArray[2])
+			lessonId, _ = strconv.Atoi(chapterTypeArray[3])
+
+		} else if _, err := utils.Contain("d", chapterTypeArray); err == nil {
+			lessonId, _ = strconv.Atoi(chapterTypeArray[2])
+		} else if _, err := utils.Contain("s", chapterTypeArray); err == nil {
+			lessonId, _ = strconv.Atoi(chapterTypeArray[2])
+
+			if lessonId == 0 {
+				baseOrm.GetDB().Table("h_edu_chapters").Select("id").Where("course_id = ? and type = 'lesson' and status = 2", courseId).Scan(&lessonId)
+			}
+
+			var parentId = 0
+			baseOrm.GetDB().Table("h_edu_chapters").Select("parent_id").Where("id = ?", lessonId).Scan(&parentId)
+
+
+
+
 		}
+
+		//记录错误日志
+		//log.Printf("the course_id is:%v", err.Error())
+
 	}
 
 }

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"edu_api/utils"
+	"log"
 )
 
 var (
@@ -132,16 +133,40 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 			lessonId, _ = strconv.Atoi(chapterTypeArray[2])
 
 			if lessonId == 0 {
-				baseOrm.GetDB().Table("h_edu_chapters").Select("id").Where("course_id = ? and type = 'lesson' and status = 2", courseId).Scan(&lessonId)
+				row := baseOrm.GetDB().Table("h_edu_chapters").Select("id").Where("course_id = ? and type = 'lesson' and status = 2", courseId).Row()
+				row.Scan(&lessonId)
 			}
 
 			var parentId = 0
-			baseOrm.GetDB().Table("h_edu_chapters").Select("parent_id").Where("id = ?", lessonId).Scan(&parentId)
+			row := baseOrm.GetDB().Table("h_edu_chapters").Select("parent_id").Where("id = ?", lessonId).Row()
+			row.Scan(&parentId)
 
+			if parentId > 0 {
+				var chapterType = ""
+				row := baseOrm.GetDB().Table("h_edu_chapters").Select("type").Where("id = ?", parentId).Row()
+				row.Scan(&chapterType)
 
+				if chapterType == "unit" {
 
+					var preParentId = 0
+					row := baseOrm.GetDB().Table("h_edu_chapters").Select("parent_id").Where("id = ?", parentId).Row()
+					row.Scan(&preParentId)
+
+					if parentId > 0 {
+						chapterId = preParentId
+						unitId = parentId
+					}
+
+				} else if chapterType == "chapter" {
+					chapterId = parentId
+				}
+			}
 
 		}
+
+		log.Printf("the chapterId is:%v\n", chapterId)
+		log.Printf("the unitId is:%v\n", unitId)
+		log.Printf("the lessonId is:%v\n", lessonId)
 
 		//记录错误日志
 		//log.Printf("the course_id is:%v", err.Error())

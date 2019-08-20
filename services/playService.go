@@ -102,6 +102,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		chapterId = 0
 		unitId    = 0
 		lessonId  = 0
+		where     = make(map[interface{}]interface{}, 5)
 	)
 
 	if err := r.DecodeJsonPayload(&learn); err != nil {
@@ -163,6 +164,12 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 			}
 
 		}
+
+		//查询当前视频是否播放过
+
+
+		where["user_id"] = ""
+
 
 		log.Printf("the chapterId is:%v\n", chapterId)
 		log.Printf("the unitId is:%v\n", unitId)

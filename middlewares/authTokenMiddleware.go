@@ -42,7 +42,7 @@ func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Ha
 			return
 		}
 
-		//相当于next()
+		//相当于next()，同时将用户登录信息存到redis
 		handler(writer, request)
 	}
 }

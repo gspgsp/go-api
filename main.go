@@ -8,6 +8,7 @@ import (
 	"edu_api/middlewares"
 	"edu_api/routes"
 	"edu_api/utils"
+	"github.com/garyburd/redigo/redis"
 )
 
 func main() {
@@ -26,6 +27,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	redis.DialConnectTimeout(1)
 
 	api.SetApp(router)
 

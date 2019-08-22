@@ -21,6 +21,18 @@
 			"revisionTime": "2019-06-20T18:01:02Z"
 		},
 		{
+			"checksumSHA1": "6X3O3mfvOyiwV2iAb5GjxARs08c=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "569eae59ada904ea8db7a225c2b47165af08735a",
+			"revisionTime": "2018-04-04T16:07:26Z"
+		},
+		{
+			"checksumSHA1": "TRsWhl8gX4p8xoErljH/oyNmY5M=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "569eae59ada904ea8db7a225c2b47165af08735a",
+			"revisionTime": "2018-04-04T16:07:26Z"
+		},
+		{
 			"checksumSHA1": "aNZPEOjiyAgS+Y0n19AF8vimMc4=",
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "877a9775f06853f611fb2d4e817d92479242d1cd",

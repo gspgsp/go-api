@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"edu_api/models"
+	jwt2 "github.com/dgrijalva/jwt-go"
 )
 
 /**
@@ -35,14 +36,22 @@ func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Ha
 		//token不正确
 		var j models.JwtClaim
 
-		_, err := j.VerifyToken(authHeaderToken)
+		token, err := j.VerifyToken(authHeaderToken)
 
 		if err != nil {
 			atm.unauthorized(writer, "授权信息不正确，请重新授权")
 			return
 		}
 
-		//相当于next()，同时将用户登录信息存到redis
+		//同时将用户登录信息存到redis
+		var userId = 0
+		switch value := token.Claims.(jwt2.MapClaims)["id"].(type) {
+		case float64:
+			userId = int(value)
+		}
+
+		log.Printf("the user is:%v", userId)
+		//相当于next()
 		handler(writer, request)
 	}
 }

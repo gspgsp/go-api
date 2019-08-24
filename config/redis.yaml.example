@@ -1,6 +1,6 @@
 redis:
-    db_host: 127.0.0.1
-    db_port: 6379
-    db_database: 0
-    db_username: root
-    db_password: 123456
+    cache_host: 127.0.0.1
+    cache_port: 6379
+    cache_database: 0
+    cache_username: root
+    cache_password: 123456

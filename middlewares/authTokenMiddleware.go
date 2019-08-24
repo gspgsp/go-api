@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"edu_api/models"
 	jwt2 "github.com/dgrijalva/jwt-go"
+	"edu_api/services"
 )
 
 /**
@@ -51,6 +52,8 @@ func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Ha
 		}
 
 		log.Printf("the user is:%v", userId)
+
+		services.GetRedisConf()
 		//相当于next()
 		handler(writer, request)
 	}

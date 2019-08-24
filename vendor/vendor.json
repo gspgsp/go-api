@@ -61,6 +61,12 @@
 			"path": "golang.org/x/crypto/blowfish",
 			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
 			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "lIWdFKN8IQVmXUrOdm0khBy5Z7M=",
+			"path": "gopkg.in/yaml.v3",
+			"revision": "674ba3eaed223079f9377fbb0c98c0951bf6ec10",
+			"revisionTime": "2019-07-09T13:04:02Z"
 		}
 	],
 	"rootPath": "edu_api"

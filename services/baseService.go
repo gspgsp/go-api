@@ -29,7 +29,7 @@ func (that *BaseOrm) InitDB() {
 
 	v := utils.ConfigType{}
 
-	err = jsonStruct.Load("E:/GoProjects/src/edu_api/config/database.json", &v)
+	err = jsonStruct.Load("./src/edu_api/config/database.json", &v)
 
 	if err != nil {
 		log.Println("parse db config error!", err)

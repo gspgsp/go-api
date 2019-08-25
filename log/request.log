@@ -1,0 +1,8 @@
+{"level":"info","msg":"我是测试","time":"2019-08-25T23:24:39+08:00","traceId":"1qaz2wsx"}
+{"age":12,"level":"info","msg":"小明来了","name":"xiaoming","sex":1,"time":"2019-08-25T23:24:39+08:00","traceId":"1qaz2wsx"}
+{"level":"info","msg":"the atm middle","time":"2019-08-25T23:24:39+08:00","traceId":"1qaz2wsx"}
+{"level":"info","msg":"we are now at:8086","time":"2019-08-25T23:24:39+08:00","traceId":"1qaz2wsx"}
+{"level":"info","msg":"获取视频播放的用户ID","time":"2019-08-25T23:24:57+08:00","traceId":"1qaz2wsx","user_id":60}
+{"level":"info","msg":"the chapterId is:353\n","time":"2019-08-25T23:24:57+08:00","traceId":"1qaz2wsx"}
+{"level":"info","msg":"the unitId is:0\n","time":"2019-08-25T23:24:57+08:00","traceId":"1qaz2wsx"}
+{"level":"info","msg":"the lessonId is:354\n","time":"2019-08-25T23:24:57+08:00","traceId":"1qaz2wsx"}

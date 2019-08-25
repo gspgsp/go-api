@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"edu_api/utils"
-	"log"
 	"encoding/json"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -176,6 +176,10 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 			log.Printf("parse user info err:%v\n", err.Error())
 		}
 		where["user_id"] = user.Id
+
+		log.WithFields(log.Fields{
+			"user_id":  user.Id,
+		}).Info("获取视频播放的用户ID")
 
 		log.Printf("the chapterId is:%v\n", chapterId)
 		log.Printf("the unitId is:%v\n", unitId)

@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"edu_api/models"
 )
@@ -20,7 +20,7 @@ MiddlewareFunc会像调用构造函数一样被调用，AuthTokenMiddleware初�
 func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 
 	//这里可以执行atm的其它操作
-	log.Println("the atm middle")
+	log.Info("the atm middle")
 
 	return func(writer rest.ResponseWriter, request *rest.Request) {
 		//前置处理

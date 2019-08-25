@@ -1,6 +1,5 @@
 config/*.json
 config/*.yaml
-config/*.exam
 vendor/github.com
 vendor/golang.org
 vendor/gopkg.in

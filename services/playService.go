@@ -7,11 +7,13 @@ import (
 	"strings"
 	"edu_api/utils"
 	"log"
+	"encoding/json"
 )
 
 var (
 	num   int64
 	learn Learn
+	//user models.User
 )
 
 type Learn struct {
@@ -162,14 +164,18 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 					chapterId = parentId
 				}
 			}
-
 		}
 
 		//查询当前视频是否播放过
+		authHeaderToken := r.Header.Get("Authorization")
+		info := GetRedisCache(authHeaderToken, "hget", "info")
 
-
-		where["user_id"] = ""
-
+		//这个user变量在登录的时候已经声明过了
+		if err := json.Unmarshal([]byte(info), &user); err != nil {
+			//记录日志
+			log.Printf("parse user info err:%v\n", err.Error())
+		}
+		where["user_id"] = user.Id
 
 		log.Printf("the chapterId is:%v\n", chapterId)
 		log.Printf("the unitId is:%v\n", unitId)
@@ -179,5 +185,4 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		//log.Printf("the course_id is:%v", err.Error())
 
 	}
-
 }

@@ -75,3 +75,15 @@ func (j JwtClaim) VerifyToken(accessToken string) (token *jwt.Token, err error) 
 
 	return token, nil
 }
+
+/**
+直接解析accessToken
+ */
+func (j JwtClaim) ParseToken(accessToken string) (token *jwt.Token) {
+	tokenArr := strings.Split(accessToken, " ")
+	token, _ = jwt.Parse(tokenArr[1], func(token *jwt.Token) (interface{}, error) {
+		return []byte(Secret), nil
+	})
+
+	return token
+}

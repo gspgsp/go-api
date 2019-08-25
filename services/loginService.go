@@ -5,6 +5,9 @@ import (
 	"edu_api/models"
 	"edu_api/utils"
 	"errors"
+	"strconv"
+	"log"
+	"encoding/json"
 )
 
 var (
@@ -40,6 +43,22 @@ func (baseOrm *BaseOrm) Login(r *rest.Request) (access_token string, err error) 
 	if access_token, err = jwt.AccessToken(); err != nil {
 		return "", err
 	}
+
+	//将用户信息缓存到redis
+	conn := GetRedisConnection()
+	defer conn.Close()
+	key := utils.ContactHashKey([]string{"user:", strconv.Itoa(user.Id)}...)
+
+	//用户信息(注册信息)
+	jsonUserInfo, _ := json.Marshal(user)
+	if v, err := conn.Do("hsetnx", key, "info", jsonUserInfo); v == 0 {
+		//记录日志
+		log.Printf("the hsetnx err is:%v", err)
+	}
+
+	//用户详细信息
+
+	//用户认证信息
 
 	return access_token, nil
 

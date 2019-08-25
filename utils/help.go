@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"reflect"
 	"errors"
+	"bytes"
 )
 
 /**
@@ -66,4 +67,13 @@ func Contain(obj interface{}, target interface{}) (bool, error) {
 	}
 
 	return false, errors.New("不包含当前元素")
+}
+
+func ContactHashKey(args ...string) string {
+	var buffer bytes.Buffer
+	for _, val := range args {
+		buffer.WriteString(val)
+	}
+
+	return buffer.String()
 }

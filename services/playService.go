@@ -173,20 +173,24 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		//这个user变量在登录的时候已经声明过了
 		if err := json.Unmarshal([]byte(info), &user); err != nil {
 			//记录日志
-			log.Printf("parse user info err:%v\n", err.Error())
+			log.Info("解析用户信息错误:", err.Error())
 		}
 		where["user_id"] = user.Id
+		where["course_id"] = courseId
+		where["lesson_id"] = lessonId
 
-		log.WithFields(log.Fields{
-			"user_id":  user.Id,
-		}).Info("获取视频播放的用户ID")
+		if chapterId > 0 {
+			where["chapter_id"] = chapterId
+		}
 
-		log.Printf("the chapterId is:%v\n", chapterId)
-		log.Printf("the unitId is:%v\n", unitId)
-		log.Printf("the lessonId is:%v\n", lessonId)
+		if unitId > 0 {
+			where["unit_id"] = unitId
+		}
 
-		//记录错误日志
-		//log.Printf("the course_id is:%v", err.Error())
 
+		//log.WithFields(log.Fields{
+		//	"user_id":   user.Id,
+		//	"client_ip": utils.GetLocalIP(),
+		//}).Info("获取视频播放的用户ID")
 	}
 }

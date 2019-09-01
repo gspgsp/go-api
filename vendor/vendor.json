@@ -51,11 +51,43 @@
 			"revisionTime": "2019-06-03T04:28:36Z"
 		},
 		{
+			"checksumSHA1": "QD46tPMRlsF6qRy3lUmC0ZCCo1A=",
+			"path": "github.com/jmcvetta/randutil",
+			"revision": "2bb1b664bcff821e02b2a0644cd29c7e824d54f8",
+			"revisionTime": "2015-08-17T12:26:01Z"
+		},
+		{
 			"checksumSHA1": "Z7rkupTQRAZzzTCqDLiSbNR70to=",
 			"origin": "github.com/sirupsen/logrus/vendor/github.com/konsorten/go-windows-terminal-sequences",
 			"path": "github.com/konsorten/go-windows-terminal-sequences",
 			"revision": "de736cf91b921d56253b4010270681d33fdf7cb5",
 			"revisionTime": "2019-08-07T10:34:36Z"
+		},
+		{
+			"checksumSHA1": "LfMM/YFNlcgT6KgtMED9foUluWY=",
+			"path": "github.com/lestrrat-go/file-rotatelogs",
+			"revision": "e0a88b0fe8408240e1560882fc17cb0bf66765cd",
+			"revisionTime": "2019-07-18T00:03:51Z"
+		},
+		{
+			"checksumSHA1": "DH2N/Hqw0uxTh5jHlT7KKaAoKtA=",
+			"path": "github.com/lestrrat-go/file-rotatelogs/internal/option",
+			"revision": "e0a88b0fe8408240e1560882fc17cb0bf66765cd",
+			"revisionTime": "2019-07-18T00:03:51Z"
+		},
+		{
+			"checksumSHA1": "PEDUbYgl3aIDgjZ6zbMpul1Fr14=",
+			"origin": "github.com/lestrrat-go/file-rotatelogs/vendor/github.com/lestrrat-go/strftime",
+			"path": "github.com/lestrrat-go/strftime",
+			"revision": "e0a88b0fe8408240e1560882fc17cb0bf66765cd",
+			"revisionTime": "2019-07-18T00:03:51Z"
+		},
+		{
+			"checksumSHA1": "CUU7ZZtxuc1mpbM8XKrSTNiy/yM=",
+			"origin": "github.com/lestrrat-go/file-rotatelogs/vendor/github.com/pkg/errors",
+			"path": "github.com/pkg/errors",
+			"revision": "e0a88b0fe8408240e1560882fc17cb0bf66765cd",
+			"revisionTime": "2019-07-18T00:03:51Z"
 		},
 		{
 			"checksumSHA1": "IWfAPYugIKPX+hIJqSkWEuo8sQw=",

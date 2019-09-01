@@ -2,23 +2,23 @@ package hook
 
 import "github.com/sirupsen/logrus"
 
-type TraceIdHook struct {
-	TraceId  string
+type TraceInfoHook struct {
+	TraceInfo  string
 }
 
-func NewTraceIdHook(traceId string) logrus.Hook {
-	hook := TraceIdHook{
-		TraceId:  traceId,
+func NewTraceInfoHook(traceInfo string) logrus.Hook {
+	hook := TraceInfoHook{
+		TraceInfo:  traceInfo,
 	}
 	return &hook
 }
 
-func (hook *TraceIdHook) Fire(entry *logrus.Entry) error {
-	entry.Data["traceId"] = hook.TraceId
+func (hook *TraceInfoHook) Fire(entry *logrus.Entry) error {
+	entry.Data["traceInfo"] = hook.TraceInfo
 	return nil
 }
 
-func (hook *TraceIdHook) Levels() []logrus.Level {
+func (hook *TraceInfoHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 

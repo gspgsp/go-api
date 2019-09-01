@@ -9,21 +9,37 @@ import (
 	"edu_api/utils"
 	"github.com/garyburd/redigo/redis"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"edu_api/hook"
+	"time"
+	"github.com/lestrrat-go/file-rotatelogs"
 )
 
 //初始化日志操作,全局有效
 func initLog() {
 	//测试logrus日志包，这个包有个依赖，golang.org/x/sys
-	//log.SetFormatter(&log.TextFormatter{DisableTimestamp: true}),这个条件有bug，加上以后会导致下面的json格式输出有问题
+	//log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
 
 	//设置最低loglevel
 	//log.SetLevel(log.InfoLevel)
 
-	log.SetFormatter(&log.JSONFormatter{})
-	file, _ := os.OpenFile("./src/edu_api/log/request.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	log.SetOutput(file)
+	log.SetFormatter(&log.JSONFormatter{TimestampFormat: "2006-01-02 15:04:05"})
+	//file, _ := os.OpenFile("./src/edu_api/log/request.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	//log.SetOutput(file)
+	configLocalFilesystemLogger("./src/edu_api/log/request")
+}
+
+//切割日志和清理过期日志
+func configLocalFilesystemLogger(filePath string) {
+	writer, err := rotatelogs.New(
+		filePath+".%Y%m%d.log",                    //%Y%m%d%H%M"，日志分割时间
+		rotatelogs.WithLinkName(filePath),         // 生成软链，指向最新日志文件
+		rotatelogs.WithMaxAge(time.Hour*7*24),     // 文件最大保存时间
+		rotatelogs.WithRotationTime(time.Hour*24), // 日志切割时间间隔
+	)
+	if err != nil {
+		log.Fatal("Init log failed, err:", err)
+	}
+	log.SetOutput(writer)
 }
 
 func main() {
@@ -32,14 +48,10 @@ func main() {
 	initLog()
 
 	//所有的日志里面通过自定义hook函数追加一个，字符串
-	log.AddHook(hook.NewTraceIdHook("1qaz2wsx"))
+	log.AddHook(hook.NewTraceInfoHook("最终解释权归GJH"))
 
-	log.Info("我是测试")
-	log.WithFields(log.Fields{
-		"age":  12,
-		"name": "xiaoming",
-		"sex":  1,
-	}).Info("小明来了")
+	//启动拂去提示
+	log.Info("启动服务...")
 
 	//初始化数据库连接实例
 	new(services.BaseOrm).InitDB()
@@ -63,6 +75,7 @@ func main() {
 
 	http.Handle(utils.API_PREFIX+"/", http.StripPrefix(utils.API_PREFIX, api.MakeHandler()))
 
-	log.Printf("we are now at:%s", utils.SERVER_PORT)
+	//监听端口提示
+	log.Info("监听端口:", utils.SERVER_PORT)
 	log.Error(http.ListenAndServe(":"+utils.SERVER_PORT, nil))
 }

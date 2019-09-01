@@ -6,6 +6,11 @@ import (
 	"reflect"
 	"errors"
 	"bytes"
+	"net"
+	"strings"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
 )
 
 /**
@@ -76,4 +81,50 @@ func ContactHashKey(args ...string) string {
 	}
 
 	return buffer.String()
+}
+
+/**
+获取内网ip
+ */
+func GetLocalIP() string {
+	conn, _ := net.Dial("udp", "8.8.8.8:80")
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	idx := strings.LastIndex(localAddr, ":")
+	return localAddr[0:idx]
+}
+
+/**
+获取外网ip
+ */
+func GetPublicIp() string {
+	resp, err := http.Get("http://myexternalip.com/raw")
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+	return string(content)
+}
+
+func TaoBaoAPI(ip string) *IPInfo {
+	url := "http://ip.taobao.com/service/getIpInfo.php?ip="
+	url += ip
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	out, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+	var result IPInfo
+	if err := json.Unmarshal(out, &result); err != nil {
+		return nil
+	}
+
+	return &result
 }

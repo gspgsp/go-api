@@ -24,7 +24,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/review/:id", new(edu.CourseController).GetCourseReview),       //评价列表
 		rest.Get("/recommend/:id", new(edu.CourseController).GetRecommendCourse), //推荐课程
 		rest.Get("/play/:id/:lesion_id", new(edu.PlayController).GetPlayList),    //视频播放
-		rest.Post("/learn", new(edu.PlayController).PutCourseLearn),
+		rest.Post("/learn", new(edu.PlayController).PutCourseLearn),              //视频观看记录
 	)
 
 	if err != nil {

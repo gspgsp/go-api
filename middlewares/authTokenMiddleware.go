@@ -20,7 +20,7 @@ MiddlewareFunc会像调用构造函数一样被调用，AuthTokenMiddleware初�
 func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 
 	//这里可以执行atm的其它操作
-	log.Info("the atm middle")
+	log.Info("即将路由中间件调用")
 
 	return func(writer rest.ResponseWriter, request *rest.Request) {
 		//前置处理

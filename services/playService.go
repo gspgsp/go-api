@@ -104,7 +104,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		chapterId = 0
 		unitId    = 0
 		lessonId  = 0
-		where     = make(map[interface{}]interface{}, 5)
+		where     = make(map[string]interface{}, 5) //key一定要是string类型，否则where条件查询会出错
 	)
 
 	if err := r.DecodeJsonPayload(&learn); err != nil {
@@ -185,6 +185,23 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 
 		if unitId > 0 {
 			where["unit_id"] = unitId
+		}
+
+		var learnCourse models.CourseLearn
+		baseOrm.GetDB().Table("h_edu_course_learns").Where(where).First(&learnCourse)
+
+		//b,_:=json.Marshal(learnCourse)，将learnCourse转为json格式输出，其中的time要格式化为本地时间格式（否则输出的时间格式是西方时间格式），采用的方式是 重写MarshalJSON，
+
+		if learn.LearnType == 0 {
+
+		} else if learn.LearnType == 1 {
+
+		} else if learn.LearnType == 2 {
+
+		} else if learn.LearnType == 3 {
+
+		} else if learn.LearnType == 4 {
+
 		}
 
 		//log.WithFields(log.Fields{

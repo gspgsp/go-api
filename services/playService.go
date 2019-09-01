@@ -187,7 +187,6 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 			where["unit_id"] = unitId
 		}
 
-
 		//log.WithFields(log.Fields{
 		//	"user_id":   user.Id,
 		//	"client_ip": utils.GetLocalIP(),

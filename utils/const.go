@@ -20,3 +20,9 @@ const API_PREFIX = "/api"
 
 //Server Port
 const SERVER_PORT = "8086"
+
+//LogPath
+const LOG_PATH = "./src/edu_api/log"
+
+//Default log name
+const LOG_NAME = "request"

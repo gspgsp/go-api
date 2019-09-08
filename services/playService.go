@@ -23,7 +23,7 @@ type Learn struct {
 	LearnIds      string `json:"learn_ids"`
 	LesionType    string `json:"lesion_type,omitempty"`
 	LesionLength  int    `json:"lesion_length,omitempty"`
-	WatchDuration int    `json:"watch_duration,omitempty"`
+	WatchDuration int64  `json:"watch_duration,omitempty"`
 }
 
 /**
@@ -215,7 +215,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 				if learn.LesionType == "pdf" || learn.LesionType == "exercise" {
 					watch_num = 1
 					status = 2
-					finish_at = (&now).String()
+					finish_at = strconv.FormatInt(time.Now().Unix(), 10)
 				}
 
 				value := fmt.Sprintf("(%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s)", status, time.Now().Unix(), finish_at, 0, learn.LesionLength, watch_num, user.Id, courseId, chapterId, unitId, lessonId, strconv.Quote((&now).String()), strconv.Quote((&now).String()))
@@ -223,13 +223,31 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 			}
 
 		} else if learn.LearnType == 1 {
-
+			if learnCourse.Id > 0 {
+				baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ?, watch_duration = ?, lesson_length = ? where id = ?", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learn.LesionLength, learnCourse.Id)
+			}
 		} else if learn.LearnType == 2 {
-
+			if learnCourse.Id > 0 && learnCourse.Status != "finished" {
+				baseOrm.GetDB().Exec("update h_edu_course_learns set status = 2, finish_at = unix_timestamp(now()), watch_num = ?, watch_duration = ? where id = ?", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+			} else if learnCourse.Id > 0 {
+				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+			}
 		} else if learn.LearnType == 3 {
-
+			if learnCourse.Id > 0 {
+				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+			}
 		} else if learn.LearnType == 4 {
-
+			if learnCourse.Id > 0 {
+				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+			}
 		}
+
+		//更新学习记录到redis
+
+
 	}
+}
+
+func updateCourseLearn(baseOrm *BaseOrm, watchNum, watchDuration, id int64) {
+	baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ?, watch_duration = ? where id = ?", watchNum+1, watchDuration, id)
 }

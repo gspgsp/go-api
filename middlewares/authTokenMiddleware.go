@@ -28,14 +28,18 @@ func (atm *AuthTokenMiddleware) MiddlewareFunc(handler rest.HandlerFunc) rest.Ha
 
 		//未设置token
 		if authHeaderToken == "" {
-			atm.unauthorized(writer, "请登录授权之后，再请求")
+			msg := "请登录授权之后，再请求"
+			atm.unauthorized(writer, msg)
+			log.Info(msg)
 			return
 		}
 
 		//token不正确
 		var j models.JwtClaim
 		if _, err := j.VerifyToken(authHeaderToken); err != nil {
-			atm.unauthorized(writer, "授权信息不正确，请重新授权")
+			msg := "授权信息不正确，请重新授权"
+			atm.unauthorized(writer, msg)
+			log.Info(msg)
 			return
 		}
 

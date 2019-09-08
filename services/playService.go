@@ -8,6 +8,8 @@ import (
 	"edu_api/utils"
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
+	"time"
+	"fmt"
 )
 
 var (
@@ -114,7 +116,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 	if len(learn.LearnIds) > 0 {
 		chapterTypeArray := strings.Split(learn.LearnIds, ":")
 
-		courseId := chapterTypeArray[1]
+		courseId, _ := strconv.Atoi(chapterTypeArray[1])
 
 		if _, err := utils.Contain("a", chapterTypeArray); err == nil {
 
@@ -191,8 +193,34 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		baseOrm.GetDB().Table("h_edu_course_learns").Where(where).First(&learnCourse)
 
 		//b,_:=json.Marshal(learnCourse)，将learnCourse转为json格式输出，其中的time要格式化为本地时间格式（否则输出的时间格式是西方时间格式），采用的方式是 重写MarshalJSON，
-
+		now := models.JsonTime(time.Now())
 		if learn.LearnType == 0 {
+			if learnCourse.Id > 0 {
+				//非视频或音频的时候就+1
+				if learn.LesionType == "pdf" || learn.LesionType == "exercise" {
+					//updateCourseLearn.WatchNum = learnCourse.WatchNum + 1
+					baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ? where id = ?", learnCourse.WatchNum+1, learnCourse.Id)
+				} else {
+					//updateCourseLearn.UpdatedAt = time.Now().Format("2010-01-02 12:01:01")
+					//updateCourseLearn.UpdatedAt = models.JsonTime(now)
+					baseOrm.GetDB().Exec("update h_edu_course_learns set updated_at = ? where id = ?", (&now).String(), learnCourse.Id)
+				}
+			} else {
+				//新增一条数据
+				sql := "insert into `h_edu_course_learns` (`status`, `start_at`,`finish_at`,`watch_duration`,`lesson_length`,`watch_num`,`user_id`,`course_id`,`chapter_id`,`unit_id`,`lesson_id`,`created_at`,`updated_at`) values "
+				watch_num := 0
+				status := 1
+				finish_at := "NULL"
+
+				if learn.LesionType == "pdf" || learn.LesionType == "exercise" {
+					watch_num = 1
+					status = 2
+					finish_at = (&now).String()
+				}
+
+				value := fmt.Sprintf("(%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s)", status, time.Now().Unix(), finish_at, 0, learn.LesionLength, watch_num, user.Id, courseId, chapterId, unitId, lessonId, strconv.Quote((&now).String()), strconv.Quote((&now).String()))
+				baseOrm.GetDB().Exec(sql + value)
+			}
 
 		} else if learn.LearnType == 1 {
 
@@ -203,10 +231,5 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		} else if learn.LearnType == 4 {
 
 		}
-
-		//log.WithFields(log.Fields{
-		//	"user_id":   user.Id,
-		//	"client_ip": utils.GetLocalIP(),
-		//}).Info("获取视频播放的用户ID")
 	}
 }

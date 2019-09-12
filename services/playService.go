@@ -194,16 +194,17 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 
 		//b,_:=json.Marshal(learnCourse)，将learnCourse转为json格式输出，其中的time要格式化为本地时间格式（否则输出的时间格式是西方时间格式），采用的方式是 重写MarshalJSON，
 		now := models.JsonTime(time.Now())
+		created_at := strconv.Quote((&now).String())
+		updated_at := strconv.Quote((&now).String())
 		if learn.LearnType == 0 {
 			if learnCourse.Id > 0 {
 				//非视频或音频的时候就+1
 				if learn.LesionType == "pdf" || learn.LesionType == "exercise" {
-					//updateCourseLearn.WatchNum = learnCourse.WatchNum + 1
-					baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ? where id = ?", learnCourse.WatchNum+1, learnCourse.Id)
+					sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, updated_at, learnCourse.Id)
+					updateCourseLearn(baseOrm, sql)
 				} else {
-					//updateCourseLearn.UpdatedAt = time.Now().Format("2010-01-02 12:01:01")
-					//updateCourseLearn.UpdatedAt = models.JsonTime(now)
-					baseOrm.GetDB().Exec("update h_edu_course_learns set updated_at = ? where id = ?", (&now).String(), learnCourse.Id)
+					sql := fmt.Sprintf("update h_edu_course_learns set updated_at = %s where id = %d", updated_at, learnCourse.Id)
+					updateCourseLearn(baseOrm, sql)
 				}
 			} else {
 				//新增一条数据
@@ -218,36 +219,54 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 					finish_at = strconv.FormatInt(time.Now().Unix(), 10)
 				}
 
-				value := fmt.Sprintf("(%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s)", status, time.Now().Unix(), finish_at, 0, learn.LesionLength, watch_num, user.Id, courseId, chapterId, unitId, lessonId, strconv.Quote((&now).String()), strconv.Quote((&now).String()))
-				baseOrm.GetDB().Exec(sql + value)
+				value := fmt.Sprintf("(%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s)", status, time.Now().Unix(), finish_at, 0, learn.LesionLength, watch_num, user.Id, courseId, chapterId, unitId, lessonId, created_at, updated_at)
+				updateCourseLearn(baseOrm, sql + value)
 			}
 
 		} else if learn.LearnType == 1 {
 			if learnCourse.Id > 0 {
-				baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ?, watch_duration = ?, lesson_length = ? where id = ?", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learn.LesionLength, learnCourse.Id)
+				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, lesson_length = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learn.LesionLength, updated_at, learnCourse.Id)
+				updateCourseLearn(baseOrm, sql)
 			}
 		} else if learn.LearnType == 2 {
 			if learnCourse.Id > 0 && learnCourse.Status != "finished" {
-				baseOrm.GetDB().Exec("update h_edu_course_learns set status = 2, finish_at = unix_timestamp(now()), watch_num = ?, watch_duration = ? where id = ?", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+				sql := fmt.Sprintf("update h_edu_course_learns set status = 2, finish_at = unix_timestamp(now()), watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
+				updateCourseLearn(baseOrm, sql)
 			} else if learnCourse.Id > 0 {
-				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
+				updateCourseLearn(baseOrm, sql)
 			}
-		} else if learn.LearnType == 3 {
+		} else if (learn.LearnType == 3) || (learn.LearnType == 4) {
 			if learnCourse.Id > 0 {
-				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
+				updateCourseLearn(baseOrm, sql)
 			}
 		} else if learn.LearnType == 4 {
 			if learnCourse.Id > 0 {
-				go updateCourseLearn(baseOrm, learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learnCourse.Id)
+				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
+				updateCourseLearn(baseOrm, sql)
 			}
 		}
 
 		//更新学习记录到redis
-
-
+		defer updateToRedisRecord()
 	}
 }
 
-func updateCourseLearn(baseOrm *BaseOrm, watchNum, watchDuration, id int64) {
-	baseOrm.GetDB().Exec("update h_edu_course_learns set watch_num = ?, watch_duration = ? where id = ?", watchNum+1, watchDuration, id)
+func updateCourseLearn(baseOrm *BaseOrm, sql string) {
+	tx := baseOrm.GetDB().Begin()
+	//先看userCourse是否有课，再更新看课记录
+	err := tx.Exec(sql).Error
+
+	if err != nil {
+		tx.Rollback()
+	} else {
+		log.Info("可以通过事务提交")
+		tx.Commit()
+	}
+}
+
+func updateToRedisRecord() {
+
+	log.Info("到defer了......")
 }

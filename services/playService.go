@@ -267,6 +267,7 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 		err_u := tx.Exec(sql).Error
 
 		if err_u != nil {
+			log.Info("事务操作出错:"+err_u.Error())
 			tx.Rollback()
 		} else {
 			log.Info("课程已经存在，直接更新")
@@ -285,6 +286,7 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 		err_u := tx.Exec(sql).Error
 
 		if err_i != nil || err_u != nil {
+			log.Info("事务操作出错:"+fmt.Sprintf("插入课程错误:%s,更行课程记录错误:%s", err_i.Error(), err_u.Error()))
 			tx.Rollback()
 		} else {
 			log.Info("课程不存在，先添加再更新")

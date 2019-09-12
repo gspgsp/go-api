@@ -195,7 +195,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		now := models.JsonTime(time.Now())
 		created_at := strconv.Quote((&now).String())
 		updated_at := strconv.Quote((&now).String())
-		map_args := map[string]int{"course_id": courseId, "lesson_id": lessonId, "user_id": user.Id}
+		map_args := map[string]interface{}{"course_id": courseId, "lesson_id": lessonId, "user_id": user.Id, "created_at":created_at}
 		if learn.LearnType == 0 {
 			if learnCourse.Id > 0 {
 				//非视频或音频的时候就+1
@@ -254,7 +254,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 学习记录更新以及加课程
 PC的话，本来learnType等于3(暂停的时候，我是没有更新学习记录以及redis的，因为，页面操作已经包含了所有的离开视频的情况)，但是这里我记录了
  */
-func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo map[string]int) {
+func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo map[string]interface{}) {
 	//事务操作
 	tx := baseOrm.GetDB().Begin()
 	//先看userCourse是否有课，再更新看课记录
@@ -279,8 +279,8 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 		var course_type string
 		row.Scan(&course_type)
 
-		insert_sql := "insert into `h_edu_courses` (`course_id`, `user_id`, `type`) values"
-		insert_value := fmt.Sprintf("(%d,%d,%s)", courseInfo["course_id"], courseInfo["user_id"], course_type)
+		insert_sql := "insert into `h_edu_courses` (`course_id`, `user_id`, `type`, `created_at`) values"
+		insert_value := fmt.Sprintf("(%d,%d,%s,%s)", courseInfo["course_id"], courseInfo["user_id"], course_type, courseInfo["created_at"])
 
 		err_i := tx.Exec(insert_sql + insert_value).Error
 		err_u := tx.Exec(sql).Error

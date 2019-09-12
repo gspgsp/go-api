@@ -192,19 +192,19 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		var learnCourse models.CourseLearn
 		baseOrm.GetDB().Table("h_edu_course_learns").Where(where).First(&learnCourse)
 
-		//b,_:=json.Marshal(learnCourse)，将learnCourse转为json格式输出，其中的time要格式化为本地时间格式（否则输出的时间格式是西方时间格式），采用的方式是 重写MarshalJSON，
 		now := models.JsonTime(time.Now())
 		created_at := strconv.Quote((&now).String())
 		updated_at := strconv.Quote((&now).String())
+		map_args := map[string]int{"course_id": courseId, "lesson_id": lessonId, "user_id": user.Id}
 		if learn.LearnType == 0 {
 			if learnCourse.Id > 0 {
 				//非视频或音频的时候就+1
 				if learn.LesionType == "pdf" || learn.LesionType == "exercise" {
 					sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, updated_at, learnCourse.Id)
-					updateCourseLearn(baseOrm, sql)
+					updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 				} else {
 					sql := fmt.Sprintf("update h_edu_course_learns set updated_at = %s where id = %d", updated_at, learnCourse.Id)
-					updateCourseLearn(baseOrm, sql)
+					updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 				}
 			} else {
 				//新增一条数据
@@ -220,52 +220,85 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 				}
 
 				value := fmt.Sprintf("(%d,%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s)", status, time.Now().Unix(), finish_at, 0, learn.LesionLength, watch_num, user.Id, courseId, chapterId, unitId, lessonId, created_at, updated_at)
-				updateCourseLearn(baseOrm, sql + value)
+				updateCourseLearn(baseOrm, sql+value, learn.LearnType, map_args)
 			}
 
 		} else if learn.LearnType == 1 {
 			if learnCourse.Id > 0 {
 				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, lesson_length = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, learn.LesionLength, updated_at, learnCourse.Id)
-				updateCourseLearn(baseOrm, sql)
+				updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 			}
 		} else if learn.LearnType == 2 {
 			if learnCourse.Id > 0 && learnCourse.Status != "finished" {
 				sql := fmt.Sprintf("update h_edu_course_learns set status = 2, finish_at = unix_timestamp(now()), watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
-				updateCourseLearn(baseOrm, sql)
+				updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 			} else if learnCourse.Id > 0 {
 				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
-				updateCourseLearn(baseOrm, sql)
+				updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 			}
 		} else if (learn.LearnType == 3) || (learn.LearnType == 4) {
 			if learnCourse.Id > 0 {
 				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
-				updateCourseLearn(baseOrm, sql)
+				updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 			}
 		} else if learn.LearnType == 4 {
 			if learnCourse.Id > 0 {
 				sql := fmt.Sprintf("update h_edu_course_learns set watch_num = %d, watch_duration = %d, updated_at = %s where id = %d", learnCourse.WatchNum+1, learnCourse.WatchDuration+learn.WatchDuration, updated_at, learnCourse.Id)
-				updateCourseLearn(baseOrm, sql)
+				updateCourseLearn(baseOrm, sql, learn.LearnType, map_args)
 			}
 		}
-
-		//更新学习记录到redis
-		defer updateToRedisRecord()
 	}
 }
 
-func updateCourseLearn(baseOrm *BaseOrm, sql string) {
+/**
+学习记录更新以及加课程
+PC的话，本来learnType等于3(暂停的时候，我是没有更新学习记录以及redis的，因为，页面操作已经包含了所有的离开视频的情况)，但是这里我记录了
+ */
+func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo map[string]int) {
+	//事务操作
 	tx := baseOrm.GetDB().Begin()
 	//先看userCourse是否有课，再更新看课记录
-	err := tx.Exec(sql).Error
+	row := baseOrm.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", courseInfo["course_id"], courseInfo["user_id"]).Select("id").Row()
+	var id int
+	row.Scan(&id)
 
-	if err != nil {
-		tx.Rollback()
+	if id > 0 {
+		//待处理，这个地方对课程的唯一可能的操作就是更新一个finished_at(整个课程的完成时间)时间，其它的schedule ... 这些都不处理了，直接放redis
+		err_u := tx.Exec(sql).Error
+
+		if err_u != nil {
+			tx.Rollback()
+		} else {
+			log.Info("课程已经存在，直接更新")
+			tx.Commit()
+		}
 	} else {
-		log.Info("可以通过事务提交")
-		tx.Commit()
+		//插入一条记录，对于免费课和会员免费的课程会出现
+		row := baseOrm.GetDB().Table("h_edu_courses").Where("course_id = ?", courseInfo["course_id"]).Select("type").Row()
+		var course_type string
+		row.Scan(&course_type)
+
+		insert_sql := "insert into `h_edu_courses` (`course_id`, `user_id`, `type`) values"
+		insert_value := fmt.Sprintf("(%d,%d,%s)", courseInfo["course_id"], courseInfo["user_id"], course_type)
+
+		err_i := tx.Exec(insert_sql + insert_value).Error
+		err_u := tx.Exec(sql).Error
+
+		if err_i != nil || err_u != nil {
+			tx.Rollback()
+		} else {
+			log.Info("课程不存在，先添加再更新")
+			tx.Commit()
+		}
 	}
+
+	//更新学习记录到redis
+	defer updateToRedisRecord()
 }
 
+/**
+更新学习记录到redis
+ */
 func updateToRedisRecord() {
 
 	log.Info("到defer了......")

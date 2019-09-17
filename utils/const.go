@@ -26,3 +26,11 @@ const LOG_PATH = "./src/edu_api/log"
 
 //Default log name
 const LOG_NAME = "request"
+
+//redis缓存key
+const (
+	LATEST_MEDIUM_PLAY              = "latest:medium:play:user:%s"
+	LATEST_LESION_INFO              = "latest:lesion:info"
+	LATEST_CLASS_WATCH_INFO         = "latest:class:%s:watch:info"
+	LATEST_CLASS_CHAPTER_WATCH_INFO = "latest:class:%s:chapter:%s:watch:info"
+)

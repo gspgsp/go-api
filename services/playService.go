@@ -195,7 +195,7 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		now := models.JsonTime(time.Now())
 		created_at := strconv.Quote((&now).String())
 		updated_at := strconv.Quote((&now).String())
-		map_args := map[string]interface{}{"course_id": courseId, "lesson_id": lessonId, "user_id": user.Id, "created_at":created_at}
+		map_args := map[string]interface{}{"course_id": courseId, "lesson_id": lessonId, "user_id": user.Id, "created_at": created_at}
 		if learn.LearnType == 0 {
 			if learnCourse.Id > 0 {
 				//非视频或音频的时候就+1
@@ -267,7 +267,7 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 		err_u := tx.Exec(sql).Error
 
 		if err_u != nil {
-			log.Info("事务操作出错:"+err_u.Error())
+			log.Info("事务操作出错:" + err_u.Error())
 			tx.Rollback()
 		} else {
 			log.Info("课程已经存在，直接更新")
@@ -286,7 +286,7 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 		err_u := tx.Exec(sql).Error
 
 		if err_i != nil || err_u != nil {
-			log.Info("事务操作出错:"+fmt.Sprintf("插入课程错误:%s,更行课程记录错误:%s", err_i.Error(), err_u.Error()))
+			log.Info("事务操作出错:" + fmt.Sprintf("插入课程错误:%s,更行课程记录错误:%s", err_i.Error(), err_u.Error()))
 			tx.Rollback()
 		} else {
 			log.Info("课程不存在，先添加再更新")
@@ -295,13 +295,50 @@ func updateCourseLearn(baseOrm *BaseOrm, sql string, learnType int, courseInfo m
 	}
 
 	//更新学习记录到redis
-	defer updateToRedisRecord()
+	defer updateToRedisRecord(baseOrm, courseInfo)
 }
 
 /**
 更新学习记录到redis
  */
-func updateToRedisRecord() {
+func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
+
+	row := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", courseInfo["course_id"]).Select("id, publish_lesson_num").Row()
+	var (
+		publishLessonNum int64
+		courseLearn      []models.CourseLearn
+		sumLength        int64
+		rate             int64
+	)
+	row.Scan(&publishLessonNum)
+
+	err := baseOrm.GetDB().
+		Table("h_edu_course_learns").
+		Where("user_id = ?, course_id = ? ", courseInfo["user_id"], courseInfo["course_id"]).
+		Order("updated_at desc").
+		Order("created_at desc").
+		Select("id, status").Find(&courseLearn).Error
+	if err != nil {
+		log.Info("读取数据错误:" + err.Error())
+	}
+
+	if len(courseLearn) <= 0 {
+		log.Info("暂无播放记录")
+	}
+
+	for _, value := range courseLearn {
+		if value.Status == "finished" {
+			sumLength += 1
+		} else {
+			sumLength += 0.5
+		}
+	}
+
+	if publishLessonNum > 0 {
+		rate = sumLength/publishLessonNum
+	}
+
+
 
 	log.Info("到defer了......")
 }

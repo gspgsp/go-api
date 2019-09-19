@@ -15,6 +15,12 @@
 			"revisionTime": "2017-09-13T04:12:08Z"
 		},
 		{
+			"checksumSHA1": "JRU8dyx3L0suEWFWpv3ObcfnTKM=",
+			"path": "github.com/asaskevich/govalidator",
+			"revision": "f61b66f89f4a311bef65f13e575bcf1a2ffadda6",
+			"revisionTime": "2019-04-24T11:10:38Z"
+		},
+		{
 			"checksumSHA1": "0cytTxS0qPVjtknc7OrfuNmxvBE=",
 			"path": "github.com/dgrijalva/jwt-go",
 			"revision": "5e25c22bd5d6de03265bbe5462dcd162f85046f6",

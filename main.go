@@ -9,6 +9,7 @@ import (
 	"edu_api/utils"
 	"github.com/garyburd/redigo/redis"
 	log "github.com/sirupsen/logrus"
+	valid "github.com/asaskevich/govalidator"
 )
 
 func main() {
@@ -30,6 +31,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//验证
+	valid.SetFieldsRequiredByDefault(true)
 
 	redis.DialConnectTimeout(1)
 

@@ -107,27 +107,38 @@ func GetRedisCache(authHeaderToken string, act, val string) (info string) {
 }
 
 //设置用户全部课程最近观看课时记录(全局:包括最近观看课时，目前不用计算比例)
-func SetLatestMediumPlayInfo(userId, lessonId interface{})  {
+func SetLatestMediumPlayInfo(userId, lessonId interface{}) {
 	conn := GetRedisConnection()
 	defer conn.Close()
 
-	conn.Do("hset", fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId), utils.LATEST_LESION_INFO, lessonId)
+	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
+	conn.Do("hset", key, utils.LATEST_LESION_INFO, lessonId)
 }
 
-func GetLatestMediumPlayInfo(userId interface{})  {
+func GetLatestMediumPlayInfo(userId interface{}) {
 
 }
 
 //设置某一课程最近观看课时记录(针对课程:包括最近观看课时、比例)
+func SetClassLatestMediumPlayInfo(userId, courseId, info interface{}) {
+	conn := GetRedisConnection()
+	defer conn.Close()
 
-
+	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
+	field, _ := fmt.Printf(utils.LATEST_CLASS_WATCH_INFO, courseId)
+	conn.Do("hset", key, field, info)
+}
 
 //设置某一课程章节最近观看课时记录(针对章节:包括最近观看课时、比例)
+func SetClassChapterMediumPlayInfo(userId, courseId, chapterId, info interface{}) {
+	conn := GetRedisConnection()
+	defer conn.Close()
 
-
+	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
+	field, _ := fmt.Printf(utils.LATEST_CLASS_CHAPTER_WATCH_INFO, courseId, chapterId, info)
+	conn.Do("hset", key, field, info)
+}
 
 /**
 mongoDb缓存类
  */
-
-

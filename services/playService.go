@@ -309,6 +309,7 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 		courseLearn      []models.CourseLearn
 		sumLength        int64
 		rate             int64
+		watch_duration   int64
 	)
 	row.Scan(&publishLessonNum)
 
@@ -317,7 +318,7 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 		Where("user_id = ?, course_id = ? ", courseInfo["user_id"], courseInfo["course_id"]).
 		Order("updated_at desc").
 		Order("created_at desc").
-		Select("id, status").Find(&courseLearn).Error
+		Select("id, status, watch_duration").Find(&courseLearn).Error
 	if err != nil {
 		log.Info("读取数据错误:" + err.Error())
 	}
@@ -327,6 +328,7 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 	}
 
 	for _, value := range courseLearn {
+		watch_duration += value.WatchDuration
 		if value.Status == "finished" {
 			sumLength += 1
 		} else {
@@ -335,10 +337,16 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 	}
 
 	if publishLessonNum > 0 {
-		rate = sumLength/publishLessonNum
+		rate = sumLength / publishLessonNum
 	}
 
+	SetLatestMediumPlayInfo(courseInfo["user_id"], courseInfo["lesson_id"])
 
+	info := map[string]interface{}{"lesson_id":courseInfo["lesson_id"], "rate":rate, "publish_lesson_num":publishLessonNum, "watch_duration":watch_duration}
+	mjson, _ := json.Marshal(info)
+	mstring := string(mjson)
 
-	log.Info("到defer了......")
+	SetClassLatestMediumPlayInfo(courseInfo["user_id"], courseInfo["course_id"], mstring)
+
+	log.Info("缓存观看记录")
 }

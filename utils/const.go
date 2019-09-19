@@ -29,8 +29,8 @@ const LOG_NAME = "request"
 
 //redis缓存key
 const (
-	LATEST_MEDIUM_PLAY              = "latest:medium:play:user:%s"
+	LATEST_MEDIUM_PLAY              = "latest:medium:play:user:%d"
 	LATEST_LESION_INFO              = "latest:lesion:info"
-	LATEST_CLASS_WATCH_INFO         = "latest:class:%s:watch:info"
-	LATEST_CLASS_CHAPTER_WATCH_INFO = "latest:class:%s:chapter:%s:watch:info"
+	LATEST_CLASS_WATCH_INFO         = "latest:class:%d:watch:info"
+	LATEST_CLASS_CHAPTER_WATCH_INFO = "latest:class:%d:chapter:%d:watch:info"
 )

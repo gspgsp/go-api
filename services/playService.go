@@ -305,26 +305,30 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 
 	row := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", courseInfo["course_id"]).Select("id, publish_lesson_num").Row()
 	var (
-		publishLessonNum int64
+		publishLessonNum float64
 		courseLearn      []models.CourseLearn
-		sumLength        int64
-		rate             int64
+		sumLength        float64
+		rate             float64
 		watch_duration   int64
 	)
 	row.Scan(&publishLessonNum)
 
 	err := baseOrm.GetDB().
 		Table("h_edu_course_learns").
-		Where("user_id = ?, course_id = ? ", courseInfo["user_id"], courseInfo["course_id"]).
+		Where("user_id = ? and course_id = ? ", courseInfo["user_id"], courseInfo["course_id"]).
 		Order("updated_at desc").
 		Order("created_at desc").
-		Select("id, status, watch_duration").Find(&courseLearn).Error
+		Select("id, status, watch_duration").
+			Find(&courseLearn).
+				Error
 	if err != nil {
 		log.Info("读取数据错误:" + err.Error())
+		return
 	}
 
 	if len(courseLearn) <= 0 {
 		log.Info("暂无播放记录")
+		return
 	}
 
 	for _, value := range courseLearn {

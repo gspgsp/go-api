@@ -3,7 +3,7 @@ package services
 import (
 	"github.com/garyburd/redigo/redis"
 	"io/ioutil"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"time"
 	jwt2 "github.com/dgrijalva/jwt-go"
@@ -111,8 +111,7 @@ func SetLatestMediumPlayInfo(userId, lessonId interface{}) {
 	conn := GetRedisConnection()
 	defer conn.Close()
 
-	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
-	conn.Do("hset", key, utils.LATEST_LESION_INFO, lessonId)
+	conn.Do("hset", fmt.Sprintf(utils.LATEST_MEDIUM_PLAY, userId), utils.LATEST_LESION_INFO, lessonId)
 }
 
 func GetLatestMediumPlayInfo(userId interface{}) {
@@ -124,9 +123,7 @@ func SetClassLatestMediumPlayInfo(userId, courseId, info interface{}) {
 	conn := GetRedisConnection()
 	defer conn.Close()
 
-	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
-	field, _ := fmt.Printf(utils.LATEST_CLASS_WATCH_INFO, courseId)
-	conn.Do("hset", key, field, info)
+	conn.Do("hset", fmt.Sprintf(utils.LATEST_MEDIUM_PLAY, userId), fmt.Sprintf(utils.LATEST_CLASS_WATCH_INFO, courseId), info)
 }
 
 //设置某一课程章节最近观看课时记录(针对章节:包括最近观看课时、比例)
@@ -134,9 +131,7 @@ func SetClassChapterMediumPlayInfo(userId, courseId, chapterId, info interface{}
 	conn := GetRedisConnection()
 	defer conn.Close()
 
-	key, _ := fmt.Printf(utils.LATEST_MEDIUM_PLAY, userId)
-	field, _ := fmt.Printf(utils.LATEST_CLASS_CHAPTER_WATCH_INFO, courseId, chapterId, info)
-	conn.Do("hset", key, field, info)
+	conn.Do("hset", fmt.Sprintf(utils.LATEST_MEDIUM_PLAY, userId), fmt.Sprintf(utils.LATEST_CLASS_CHAPTER_WATCH_INFO, courseId, chapterId), info)
 }
 
 /**

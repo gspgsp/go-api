@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"fmt"
 )
 
 /**
@@ -127,4 +128,16 @@ func TaoBaoAPI(ip string) *IPInfo {
 	}
 
 	return &result
+}
+
+/**
+重新处理小数：保留n位以及是否四舍五入
+ */
+func RetainNumber(number float64) float64 {
+
+	value := math.Trunc(number*1e1+0.5) * 1e-1
+
+	pValue, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", value), 64)
+
+	return pValue
 }

@@ -11,6 +11,7 @@ func init() {
 
 //保存评价验证
 type Remark struct {
+	IsCry           int     `json:"is_cry" valid:"-"`
 	PracticalRating float64 `json:"practical_rating" valid:"range(2|10)~实用性评分最少为2分，最多为10分"`
 	PopularRating   float64 `json:"popular_rating" valid:"range(2|10)~通用性评分最少为2分，最多为10分"`
 	LogicRating     float64 `json:"logic_rating" valid:"range(2|10)~逻辑性评分最少为2分，最多为10分"`

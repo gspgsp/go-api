@@ -169,14 +169,8 @@ func (baseOrm *BaseOrm) PutCourseLearn(r *rest.Request) {
 		}
 
 		//查询当前视频是否播放过
-		authHeaderToken := r.Header.Get("Authorization")
-		info := GetRedisCache(authHeaderToken, "hget", "info")
+		user = GetUserInfo(r.Header.Get("Authorization"))
 
-		//这个user变量在登录的时候已经声明过了
-		if err := json.Unmarshal([]byte(info), &user); err != nil {
-			//记录日志
-			log.Info("解析用户信息错误:", err.Error())
-		}
 		where["user_id"] = user.Id
 		where["course_id"] = courseId
 		where["lesson_id"] = lessonId
@@ -319,8 +313,8 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 		Order("updated_at desc").
 		Order("created_at desc").
 		Select("id, status, watch_duration").
-			Find(&courseLearn).
-				Error
+		Find(&courseLearn).
+		Error
 	if err != nil {
 		log.Info("读取数据错误:" + err.Error())
 		return
@@ -346,7 +340,7 @@ func updateToRedisRecord(baseOrm *BaseOrm, courseInfo map[string]interface{}) {
 
 	SetLatestMediumPlayInfo(courseInfo["user_id"], courseInfo["lesson_id"])
 
-	info := map[string]interface{}{"lesson_id":courseInfo["lesson_id"], "rate":rate, "publish_lesson_num":publishLessonNum, "watch_duration":watch_duration}
+	info := map[string]interface{}{"lesson_id": courseInfo["lesson_id"], "rate": rate, "publish_lesson_num": publishLessonNum, "watch_duration": watch_duration}
 	mjson, _ := json.Marshal(info)
 	mstring := string(mjson)
 

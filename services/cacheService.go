@@ -11,6 +11,7 @@ import (
 	"edu_api/utils"
 	"strconv"
 	"fmt"
+	"encoding/json"
 )
 
 /**
@@ -101,6 +102,20 @@ func GetRedisCache(authHeaderToken string, act, val string) (info string) {
 		info, _ := redis.String(conn.Do(act, key, val))
 
 		return info
+	}
+
+	return
+}
+
+/**
+获取缓存的用户信息
+ */
+func GetUserInfo(authHeaderToken string) (user models.User) {
+	info := GetRedisCache(authHeaderToken, "hget", "info")
+
+	if err := json.Unmarshal([]byte(info), &user); err != nil {
+		//记录日志
+		log.Info("解析用户信息错误:", err.Error())
 	}
 
 	return

@@ -25,11 +25,13 @@ func (remark *RemarkController) StoreRemark(w rest.ResponseWriter, r *rest.Reque
 	result, err := (&rem).RemarkValidator()
 	if err != nil {
 		log.Info("验证错误:"+err.Error())
-		remark.controller.JsonReturn(w,remark.controller,"result", err.Error())
+		remark.controller.JsonReturn(w,"result", err.Error())
 	}
 
 	if result {
 		//保存评价
 		remark.controller.BaseOrm.StoreRemark(r)
+	}else {
+
 	}
 }

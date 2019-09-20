@@ -20,5 +20,5 @@ func (user *UserController) GetLecturerList(w rest.ResponseWriter, r *rest.Reque
 
 	lecturers, user.controller.Err = user.controller.BaseOrm.LecturerList(r)
 
-	user.controller.JsonReturn(w, user.controller, "lecturers", lecturers)
+	user.controller.JsonReturn(w, "lecturers", lecturers)
 }

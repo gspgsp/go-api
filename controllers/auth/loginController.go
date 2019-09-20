@@ -17,5 +17,5 @@ func (login *LoginController) Login(w rest.ResponseWriter, r *rest.Request) {
 
 	token, login.controller.Err = login.controller.BaseOrm.Login(r)
 
-	login.controller.JsonReturn(w, login.controller, "token", token)
+	login.controller.JsonReturn(w, "token", token)
 }

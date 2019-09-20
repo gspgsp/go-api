@@ -17,7 +17,7 @@ func (play *PlayController) GetPlayList(w rest.ResponseWriter, r *rest.Request) 
 	var playLists models.Media
 
 	playLists, play.controller.Err = play.controller.BaseOrm.GetPlayList(r)
-	play.controller.JsonReturn(w, play.controller, "playLists", playLists)
+	play.controller.JsonReturn(w, "playLists", playLists)
 }
 
 func (play *PlayController) PutCourseLearn(w rest.ResponseWriter, r *rest.Request) {

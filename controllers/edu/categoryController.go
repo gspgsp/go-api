@@ -23,5 +23,5 @@ func (category *CategoryController) GetCategory(w rest.ResponseWriter, r *rest.R
 
 	categories, category.controller.Err = category.controller.BaseOrm.CategoryList()
 
-	category.controller.JsonReturn(w, category.controller, "materials", categories)
+	category.controller.JsonReturn(w, "materials", categories)
 }

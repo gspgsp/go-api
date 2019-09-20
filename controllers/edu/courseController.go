@@ -23,7 +23,7 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 	courses, course.controller.Err = course.controller.BaseOrm.CourseList(r)
 
-	course.controller.JsonReturn(w, course.controller, "courses", courses)
+	course.controller.JsonReturn(w, "courses", courses)
 }
 
 /**
@@ -36,7 +36,7 @@ func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.R
 
 	detail, course.controller.Err = course.controller.BaseOrm.GetCourseDetail(r)
 
-	course.controller.JsonReturn(w, course.controller, "detail", detail)
+	course.controller.JsonReturn(w, "detail", detail)
 }
 
 /**
@@ -49,7 +49,7 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 
 	packages, course.controller.Err = course.controller.BaseOrm.PackageList(r)
 
-	course.controller.JsonReturn(w, course.controller, "packages", packages)
+	course.controller.JsonReturn(w, "packages", packages)
 }
 
 /**
@@ -62,7 +62,7 @@ func (course *CourseController) GetCourseChapter(w rest.ResponseWriter, r *rest.
 
 	chapters, course.controller.Err = course.controller.BaseOrm.GetCourseChapter(r)
 
-	course.controller.JsonReturn(w, course.controller, "chapters", chapters)
+	course.controller.JsonReturn(w, "chapters", chapters)
 }
 
 /**
@@ -73,7 +73,7 @@ func (course *CourseController) GetCourseReview(w rest.ResponseWriter, r *rest.R
 
 	reviews, course.controller.Err = course.controller.BaseOrm.GetCourseReview(r)
 
-	course.controller.JsonReturn(w, course.controller, "reviews", reviews)
+	course.controller.JsonReturn(w, "reviews", reviews)
 }
 
 /**
@@ -84,5 +84,5 @@ func (course *CourseController) GetRecommendCourse(w rest.ResponseWriter, r *res
 
 	recommends, course.controller.Err = course.controller.BaseOrm.GetRecommendCourse(r)
 
-	course.controller.JsonReturn(w, course.controller, "recommends", recommends)
+	course.controller.JsonReturn(w, "recommends", recommends)
 }

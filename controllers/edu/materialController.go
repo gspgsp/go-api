@@ -21,5 +21,5 @@ func (material *MaterialController) GetMaterialList(w rest.ResponseWriter, r *re
 
 	materials, material.controller.Err = material.controller.BaseOrm.GetMaterialList(r)
 
-	material.controller.JsonReturn(w, material.controller, "materials", materials)
+	material.controller.JsonReturn(w, "materials", materials)
 }

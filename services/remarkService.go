@@ -13,8 +13,17 @@ import (
 
 func (baseOrm *BaseOrm) StoreRemark(r *rest.Request, rem *middlewares.Remark) string {
 
+	type RatingResult struct {
+		AllRating          float64 `json:"all_rating"`
+		AllPracticalRating float64 `json:"all_practical_rating"`
+		AllPopularRating   float64 `json:"all_popular_rating"`
+		AllLogicRating     float64 `json:"all_logic_rating"`
+		Number             float64 `json:"number"`
+	}
+
 	var (
 		user_course models.UserCourse
+		rateResult  RatingResult
 	)
 
 	courseId, _ := strconv.Atoi(r.PathParam("id"))
@@ -40,5 +49,16 @@ func (baseOrm *BaseOrm) StoreRemark(r *rest.Request, rem *middlewares.Remark) st
 	sql1 = fmt.Sprintf(sql1, rem.IsCry, fmt.Sprintf("%.1f", rating), int64(rem.PracticalRating), int64(rem.PopularRating), int64(rem.LogicRating), rem.Review, reviewed_at, courseId, user.Id)
 
 	log.Printf("the sql is:%s", sql1)
+
+	//计算课程综合评分
+	sql2 := "select sum(practical_rating) as all_practical_rating, sum(popular_rating) as all_popular_rating, sum(logic_rating) as all_logic_rating, sum(rating) as all_rating, count(id) as number from h_user_course where course_id = %d and reviewed = 1 and status = 1 group by course_id"
+	sql2 = fmt.Sprintf(sql2, courseId)
+	baseOrm.GetDB().
+
+	rateResult.AllLogicRating = utils.RetainNumber((rateResult.AllLogicRating + 10) / (rateResult.Number + 1))
+	rateResult.AllPopularRating = utils.RetainNumber((rateResult.AllPopularRating + 10) / (rateResult.Number + 1))
+	rateResult.AllPracticalRating = utils.RetainNumber((rateResult.AllPracticalRating + 10) / (rateResult.Number + 1))
+
+	log.Printf("the com_practical_rating is:%v", rateResult)
 	return ""
 }

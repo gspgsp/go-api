@@ -2,14 +2,15 @@ package services
 
 import (
 	"edu_api/models"
-	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/utils"
-	"log"
-	"strconv"
-	"net/http"
-	jwt2 "github.com/dgrijalva/jwt-go"
 	"errors"
+	"github.com/ant0ine/go-json-rest/rest"
+	jwt2 "github.com/dgrijalva/jwt-go"
+	log "github.com/sirupsen/logrus"
+	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type Result struct {
@@ -21,7 +22,7 @@ type Result struct {
 
 /**
 获取课程列表信息
- */
+*/
 func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err error) {
 
 	var (
@@ -117,7 +118,7 @@ func (baseOrm *BaseOrm) CourseList(r *rest.Request) (course []models.Course, err
 
 /**
 获取课程详情信息
- */
+*/
 func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, err error) {
 
 	var (
@@ -185,7 +186,7 @@ func (baseOrm *BaseOrm) GetCourseDetail(r *rest.Request) (detail models.Detail, 
 
 /**
 获取课程章节
- */
+*/
 func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Chapter, err error) {
 	var (
 		tmpChapter []models.Chapter
@@ -212,7 +213,7 @@ func (baseOrm *BaseOrm) GetCourseChapter(r *rest.Request) (chapters []models.Cha
 
 /**
 评价列表
- */
+*/
 func (baseOrm *BaseOrm) GetCourseReview(r *rest.Request) (reviews []models.Review, err error) {
 
 	var (
@@ -262,7 +263,7 @@ func (baseOrm *BaseOrm) GetCourseReview(r *rest.Request) (reviews []models.Revie
 
 /**
 获取推荐课
- */
+*/
 func (baseOrm *BaseOrm) GetRecommendCourse(r *rest.Request) (recommends []models.Recommend, err error) {
 	var (
 		defaultLimit = 4
@@ -383,7 +384,7 @@ GetChannelData:
 
 /**
 获取相同标签下的推荐课程
- */
+*/
 func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId int, id int, baseOrm *BaseOrm) {
 
 	defer func() {
@@ -393,9 +394,9 @@ func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId i
 	var recommend []models.Recommend
 	//这个子查询in(少) 和 exists(多)效率差不多 还是join查询快一点(少了一层子结果集扫描)
 	/*
-	select * from h_edu_courses where id in (select taggable_id from h_taggables where tag_id = 7 and taggable_id != 106);
-	select * from h_edu_courses where exists (select tag_id from h_taggables where tag_id = 7 and taggable_id != 106 and h_taggables.taggable_id = h_edu_courses.id);
-	select * from h_edu_courses inner join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = 7 and taggable_id != 106;
+		select * from h_edu_courses where id in (select taggable_id from h_taggables where tag_id = 7 and taggable_id != 106);
+		select * from h_edu_courses where exists (select tag_id from h_taggables where tag_id = 7 and taggable_id != 106 and h_taggables.taggable_id = h_edu_courses.id);
+		select * from h_edu_courses inner join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = 7 and taggable_id != 106;
 	*/
 	baseOrm.GetDB().
 		Raw("select id, type, title, price, vip_price, discount, discount_end_at, cover_picture, learn_num, buy_num from h_edu_courses left join h_taggables on h_edu_courses.id = h_taggables.taggable_id where h_taggables.tag_id = ? and taggable_id != ?;", tagId, id).
@@ -407,7 +408,7 @@ func getRecommend(channel chan []models.Recommend, endChannel chan bool, tagId i
 
 /**
 slice 去重操作(类似冒泡排序), 参数类型不能用interface{},否则返回值没法处理成指定类型
- */
+*/
 func RemoveDuplicateSlice(a []models.Recommend) (ret []models.Recommend) {
 
 	n := len(a)
@@ -417,7 +418,7 @@ func RemoveDuplicateSlice(a []models.Recommend) (ret []models.Recommend) {
 		state := false
 
 		for j := i + 1; j < n; j++ {
-			if (j > 0 && reflect.DeepEqual(a[i], a[j])) {
+			if j > 0 && reflect.DeepEqual(a[i], a[j]) {
 				state = true
 				continue
 			}
@@ -426,6 +427,41 @@ func RemoveDuplicateSlice(a []models.Recommend) (ret []models.Recommend) {
 		if !state {
 			ret = append(ret, a[i])
 		}
+	}
+
+	return
+}
+
+func (baseOrm *BaseOrm) GetTrySeeList(r *rest.Request) (ret []models.Chapter, err error) {
+	//因为试看有两个地方，所以通过这种方式传递参数
+	var (
+		courseId  string //当为体系课的时候，这个id为ChapterId；当为精品课的时候，这个为CourseId
+		isChapter string //是否为体系课 1：是 0：否
+	)
+
+	idStr := r.PathParam("id")
+	if len(idStr) == 0 {
+		log.Info("参数错误!")
+		return nil, errors.New("参数错误!")
+	}
+
+	idArr := strings.Split(idStr, "_")
+	if len(idArr) == 0 {
+		log.Info("参数错误!")
+		return nil, errors.New("参数错误!")
+	}
+
+	courseId = idArr[0]
+	isChapter = idArr[1]
+
+	if isChapter == "0" {
+		if err = baseOrm.GetDB().Table("h_edu_chapters").Where("course_id = ? and is_free = 1 and status = 2", courseId).Find(&ret).Error; err != nil {
+			return nil, err
+		}
+
+		return ret, nil
+	} else if isChapter == "1" {
+
 	}
 
 	return

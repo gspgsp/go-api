@@ -1,15 +1,15 @@
 package routes
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
-	"edu_api/controllers/edu"
 	"edu_api/controllers/auth"
+	"edu_api/controllers/edu"
 	"edu_api/controllers/user"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
 /**
 初始化路由
- */
+*/
 func InitRoute() (rest.App, error) {
 
 	router, err := rest.MakeRouter(
@@ -26,6 +26,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/play/:id/:lesion_id", new(edu.PlayController).GetPlayList),    //视频播放
 		rest.Post("/learn", new(edu.PlayController).PutCourseLearn),              //视频观看记录
 		rest.Post("/remark/:id", new(edu.RemarkController).StoreRemark),          //创建评价
+		rest.Get("/try/:id", new(edu.CourseController).GetTrySeeList),            //获取试看列表
 	)
 
 	if err != nil {

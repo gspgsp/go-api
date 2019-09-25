@@ -1,21 +1,21 @@
 package edu
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
-	"edu_api/models"
 	"edu_api/controllers"
+	"edu_api/models"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
 /**
 定义课程控制器
- */
+*/
 type CourseController struct {
 	controller controllers.Controller
 }
 
 /**
 获取所有课程信息
- */
+*/
 func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		courses []models.Course
@@ -28,7 +28,7 @@ func (course *CourseController) GetCourseList(w rest.ResponseWriter, r *rest.Req
 
 /**
 获取课程详情列表
- */
+*/
 func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		detail models.Detail
@@ -41,7 +41,7 @@ func (course *CourseController) GetCourseDetail(w rest.ResponseWriter, r *rest.R
 
 /**
 获取套餐列表
- */
+*/
 func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		packages []models.Package
@@ -54,7 +54,7 @@ func (course *CourseController) GetPackageList(w rest.ResponseWriter, r *rest.Re
 
 /**
 获取课程章节
- */
+*/
 func (course *CourseController) GetCourseChapter(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		chapters []models.Chapter
@@ -67,7 +67,7 @@ func (course *CourseController) GetCourseChapter(w rest.ResponseWriter, r *rest.
 
 /**
 课程评价列表
- */
+*/
 func (course *CourseController) GetCourseReview(w rest.ResponseWriter, r *rest.Request) {
 	var reviews []models.Review
 
@@ -78,11 +78,19 @@ func (course *CourseController) GetCourseReview(w rest.ResponseWriter, r *rest.R
 
 /**
 推荐课程
- */
+*/
 func (course *CourseController) GetRecommendCourse(w rest.ResponseWriter, r *rest.Request) {
 	var recommends []models.Recommend
 
 	recommends, course.controller.Err = course.controller.BaseOrm.GetRecommendCourse(r)
 
 	course.controller.JsonReturn(w, "recommends", recommends)
+}
+
+func (course *CourseController) GetTrySeeList(w rest.ResponseWriter, r *rest.Request) {
+	var trySeeLists []models.Chapter
+
+	trySeeLists, course.controller.Err = course.controller.BaseOrm.GetTrySeeList(r)
+
+	course.controller.JsonReturn(w, "try", trySeeLists)
 }

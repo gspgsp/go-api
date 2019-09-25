@@ -8,15 +8,15 @@ import (
 
 /**
 路由判断中间件
- */
-func IfMiddleware() (*rest.IfMiddleware) {
+*/
+func IfMiddleware() *rest.IfMiddleware {
 
 	middleware := &rest.IfMiddleware{
 		Condition: func(request *rest.Request) bool {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)|(/recommend[/\d+]?)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)|(/recommend[/\d+]?)|(/try[/\d+]?)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)

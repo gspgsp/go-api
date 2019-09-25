@@ -466,3 +466,34 @@ func (baseOrm *BaseOrm) GetTrySeeList(r *rest.Request) (ret []models.Chapter, er
 
 	return
 }
+
+//递归获取所有子级id
+func getRecursion(baseOrm *BaseOrm, courseId string) {
+	type ParentId struct {
+		Id string `json:"id"`
+	}
+
+	var (
+		done = false
+		ids  []ParentId
+	)
+	//db.Where("name IN (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
+	for {
+		var temp = ""
+		baseOrm.GetDB().Table("h_edu_chapters").Where("parent_id in (?)", []string{courseId}).Find(&ids)
+
+		for _, value := range ids {
+			temp += `"` + value.Id + `",`
+		}
+
+		if len(ids) == 0 {
+			done = true
+		} else {
+			courseId = temp
+		}
+
+		if done {
+			break
+		}
+	}
+}

@@ -87,6 +87,9 @@ func (course *CourseController) GetRecommendCourse(w rest.ResponseWriter, r *res
 	course.controller.JsonReturn(w, "recommends", recommends)
 }
 
+/**
+课程试看列表
+*/
 func (course *CourseController) GetTrySeeList(w rest.ResponseWriter, r *rest.Request) {
 	var trySeeLists []models.Chapter
 

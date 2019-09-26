@@ -2,15 +2,16 @@ package services
 
 import (
 	"edu_api/models"
-	"github.com/ant0ine/go-json-rest/rest"
-	"strconv"
-	"log"
 	"errors"
+	"fmt"
+	"github.com/ant0ine/go-json-rest/rest"
+	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 /**
 获取套餐列表
- */
+*/
 func (baseOrm *BaseOrm) PackageList(r *rest.Request) (packages []models.Package, err error) {
 
 	var (
@@ -57,4 +58,26 @@ func (baseOrm *BaseOrm) PackageList(r *rest.Request) (packages []models.Package,
 	}
 
 	return packages, nil
+}
+
+func (baseOrm BaseOrm) GetComposePackage(r *rest.Request) ([]models.ComposePackageModel, error) {
+	//因为gorm好像还不支持模型里面套模型赋值，所以这里不用join了，直接分开获取，再组合成指定模型
+	var (
+		pcs []models.PackageCourseModel
+	)
+
+	id, err := strconv.Atoi(r.PathParam("id"))
+	if err != nil {
+		log.Info("路由参数错误!")
+		return nil, errors.New("路由参数错误!")
+	}
+
+	if err := baseOrm.GetDB().Table("h_edu_package_course").Where("course_id = ?", id).Select("package_id").Find(&pcs).Error; err != nil {
+		log.Info("资源获取错误!" + err.Error())
+		return nil, errors.New("资源获取错误!" + err.Error())
+	}
+
+	fmt.Printf("the len is:%v\n", len(pcs))
+
+	return nil, errors.New("未知")
 }

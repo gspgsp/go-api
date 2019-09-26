@@ -455,20 +455,28 @@ func (baseOrm *BaseOrm) GetTrySeeList(r *rest.Request) (ret []models.Chapter, er
 	isChapter = idArr[1]
 
 	if isChapter == "0" {
-		if err = baseOrm.GetDB().Table("h_edu_chapters").Where("course_id = ? and is_free = 1 and status = 2", courseId).Find(&ret).Error; err != nil {
+		if err = baseOrm.GetDB().Table("h_edu_chapters").Where("course_id = ? and is_free = 1 and status = 2", courseId).Select("id, parent_id, type, lesson_type, number, title, course_id").Find(&ret).Error; err != nil {
 			return nil, err
 		}
 
 		return ret, nil
-	} else if isChapter == "1" {
+	} else {
+		ids := getRecursion(baseOrm, []string{courseId})
+		if len(ids) == 0 {
+			log.Info("当前章节下没有试看")
+			return nil, errors.New("当前章节下没有试看")
+		}
 
+		if err = baseOrm.GetDB().Table("h_edu_chapters").Where("is_free = 1 and status = 2 and id in (?)", ids).Select("id, parent_id, type, lesson_type, number, title, course_id").Find(&ret).Error; err != nil {
+			return nil, err
+		}
+
+		return ret, nil
 	}
-
-	return
 }
 
 //递归获取所有子级id
-func getRecursion(baseOrm *BaseOrm, courseId string) {
+func getRecursion(baseOrm *BaseOrm, courseId []string) []string {
 	type ParentId struct {
 		Id string `json:"id"`
 	}
@@ -476,24 +484,26 @@ func getRecursion(baseOrm *BaseOrm, courseId string) {
 	var (
 		done = false
 		ids  []ParentId
+		arr  = []string{} //初始化，没有包括最外层的父级，如果需要可以在这里加上
 	)
-	//db.Where("name IN (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
+
 	for {
-		var temp = ""
-		baseOrm.GetDB().Table("h_edu_chapters").Where("parent_id in (?)", []string{courseId}).Find(&ids)
+		baseOrm.GetDB().Table("h_edu_chapters").Where("parent_id in (?)", courseId).Find(&ids)
 
-		for _, value := range ids {
-			temp += `"` + value.Id + `",`
-		}
-
+		courseId = []string{}
 		if len(ids) == 0 {
 			done = true
 		} else {
-			courseId = temp
+			for _, value := range ids {
+				arr = append(arr, value.Id)
+				courseId = append(courseId, value.Id)
+			}
 		}
 
 		if done {
 			break
 		}
 	}
+
+	return arr
 }

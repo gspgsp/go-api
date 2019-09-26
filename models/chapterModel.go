@@ -7,13 +7,13 @@ type Chapter struct {
 	Number      int64     `json:"number,omitempty"`
 	NumberPath  string    `json:"number_path,omitempty"`
 	Title       string    `json:"title,omitempty"`
-	Preview     string    `json:"preview"`
+	Preview     string    `json:"preview,omitempty"`
 	IsFree      int       `json:"is_free"`
 	LessonType  string    `json:"lesson_type"`
-	MediaSource string    `json:"media_source"`
+	MediaSource string    `json:"media_source,omitempty"`
 	Path        string    `json:"path,omitempty"`
 	Length      int       `json:"length,omitempty"`
-	Status      string    `json:"status"`
+	Status      string    `json:"status,omitempty"`
 	Description string    `json:"description,omitempty"`
 	CreatedAt   string    `json:"created_at,omitempty"`
 	UpdatedAt   string    `json:"updated_at,omitempty"`

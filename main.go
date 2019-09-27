@@ -1,14 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"github.com/ant0ine/go-json-rest/rest"
-	"edu_api/services"
 	"edu_api/middlewares"
 	"edu_api/routes"
+	"edu_api/services"
 	"edu_api/utils"
-	"github.com/garyburd/redigo/redis"
+	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func main() {
@@ -19,7 +18,7 @@ func main() {
 	new(services.BaseOrm).InitDB()
 
 	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack ...)
+	api.Use(rest.DefaultDevStack...)
 
 	//路由中间件
 	api.Use(middlewares.IfMiddleware())
@@ -30,8 +29,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	redis.DialConnectTimeout(1)
 
 	api.SetApp(router)
 

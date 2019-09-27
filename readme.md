@@ -9,6 +9,7 @@
 - Go 1.11+
 - Mysql 5.6+
 - Redis 3.0+
+- MongoDB 4.0+
 
 ## 开发环境部署/安装
 本项目使用 golang 框架 [go-json-rest](https://go.ctolib.com/go-json-rest.html)

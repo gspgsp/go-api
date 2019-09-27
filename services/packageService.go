@@ -77,6 +77,9 @@ func (baseOrm *BaseOrm) GetComposePackage(r *rest.Request) (models.ComposeModel,
 		pcs []models.PackageCourseModel
 	)
 
+	//将compose初始化(置空)
+	compose = models.ComposeModel{nil}
+
 	id, err := strconv.Atoi(r.PathParam("id"))
 	if err != nil {
 		log.Info("路由参数错误!")

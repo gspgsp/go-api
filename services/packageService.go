@@ -3,10 +3,18 @@ package services
 import (
 	"edu_api/models"
 	"errors"
-	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"sync"
+)
+
+/**
+全局变量
+*/
+var (
+	packageCourse []models.PackageCourseModel
+	compose       models.ComposeModel
 )
 
 /**
@@ -60,7 +68,10 @@ func (baseOrm *BaseOrm) PackageList(r *rest.Request) (packages []models.Package,
 	return packages, nil
 }
 
-func (baseOrm BaseOrm) GetComposePackage(r *rest.Request) ([]models.ComposePackageModel, error) {
+/**
+组合套餐
+*/
+func (baseOrm *BaseOrm) GetComposePackage(r *rest.Request) (models.ComposeModel, error) {
 	//因为gorm好像还不支持模型里面套模型赋值，所以这里不用join了，直接分开获取，再组合成指定模型
 	var (
 		pcs []models.PackageCourseModel
@@ -69,15 +80,68 @@ func (baseOrm BaseOrm) GetComposePackage(r *rest.Request) ([]models.ComposePacka
 	id, err := strconv.Atoi(r.PathParam("id"))
 	if err != nil {
 		log.Info("路由参数错误!")
-		return nil, errors.New("路由参数错误!")
+		return compose, errors.New("路由参数错误!")
 	}
 
 	if err := baseOrm.GetDB().Table("h_edu_package_course").Where("course_id = ?", id).Select("package_id").Find(&pcs).Error; err != nil {
 		log.Info("资源获取错误!" + err.Error())
-		return nil, errors.New("资源获取错误!" + err.Error())
+		return compose, errors.New("资源获取错误!" + err.Error())
 	}
 
-	fmt.Printf("the len is:%v\n", len(pcs))
+	//声明一个工作池
+	var wg sync.WaitGroup
+	for i := 0; i < len(pcs); i++ {
+		wg.Add(1)
+		go getPackageCourse(baseOrm, pcs[i].PackageId, &wg)
+	}
+	wg.Wait()
 
-	return nil, errors.New("未知")
+	return compose, nil
+}
+
+/**
+通过当前package获取所有对应的课程
+*/
+func getPackageCourse(baseOrm *BaseOrm, package_id int64, wg *sync.WaitGroup) {
+	var (
+		pcs            []models.PackageCourseModel
+		courseIds      []int64
+		courses        []models.Course
+		composePackage models.ComposePackageModel
+	)
+
+	defer func() {
+		wg.Done()
+	}()
+
+	if err := baseOrm.GetDB().Table("h_edu_packages").Where("id = ?", package_id).First(&composePackage).Error; err != nil {
+		log.Info("资源获取错误!" + err.Error())
+		return
+	}
+
+	if err := baseOrm.GetDB().
+		Table("h_edu_package_course").
+		Select("course_id").
+		Find(&pcs).Error; err != nil {
+		log.Info("资源获取错误!" + err.Error())
+		return
+	}
+
+	for _, value := range pcs {
+		courseIds = append(courseIds, value.CourseId)
+	}
+
+	if err := baseOrm.GetDB().
+		Table("h_edu_courses").
+		Where("status = 2 and id in (?)", courseIds).
+		Select("id, type, title, subtitle, price, vip_price, discount, discount_end_at, cover_picture, back_picture, learn_num, buy_num, video_url").
+		Find(&courses).Error; err != nil {
+		log.Info("资源获取错误!" + err.Error())
+		return
+	}
+
+	composePackage.PackageCourse = courses
+	compose.ComposePackage = append(compose.ComposePackage, composePackage)
+
+	return
 }

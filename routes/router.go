@@ -28,6 +28,7 @@ func InitRoute() (rest.App, error) {
 		rest.Post("/remark/:id", new(edu.RemarkController).StoreRemark),          //创建评价
 		rest.Get("/try/:id", new(edu.CourseController).GetTrySeeList),            //获取试看列表
 		rest.Get("/compose/:id", new(edu.PackageController).GetComposePackage),   //获取组合套餐
+		rest.Get("/package/:id", new(edu.PackageController).GetPackageDetail),    //套餐详情
 	)
 
 	if err != nil {

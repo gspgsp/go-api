@@ -17,6 +17,19 @@ func (course *PackageController) GetComposePackage(w rest.ResponseWriter, r *res
 	var (
 		compose models.ComposeModel
 	)
+
 	compose, course.controller.Err = course.controller.BaseOrm.GetComposePackage(r)
 	course.controller.JsonReturn(w, "compose", compose.ComposePackage)
+}
+
+/**
+套餐详情
+*/
+func (course *PackageController) GetPackageDetail(w rest.ResponseWriter, r *rest.Request) {
+	var (
+		composePackage models.ComposePackageModel
+	)
+
+	composePackage, course.controller.Err = course.controller.BaseOrm.GetPackageDetail(r)
+	course.controller.JsonReturn(w, "detail", composePackage)
 }

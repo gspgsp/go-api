@@ -16,8 +16,8 @@ type Package struct {
 	VideoUrl      string  `json:"video_url"`
 	Keywords      string  `json:"keywords"`
 	Description   string  `json:"description"`
-	Goals         []byte  `json:"goals"`
-	Audiences     []byte  `json:"audiences"`
-	MbAbout       []byte  `json:"mb_about"`
+	Goals         string  `json:"goals"`
+	Audiences     string  `json:"audiences"`
+	MbAbout       string  `json:"mb_about"` //本来想用[]byte存这个值的，但是发现api返回以后没法转回string
 	CreatedAt     string  `json:"created_at"`
 }

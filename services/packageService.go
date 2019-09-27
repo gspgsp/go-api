@@ -91,6 +91,11 @@ func (baseOrm *BaseOrm) GetComposePackage(r *rest.Request) (models.ComposeModel,
 		return compose, errors.New("资源获取错误!" + err.Error())
 	}
 
+	if len(pcs) == 0 {
+		log.Info("资源不存在!")
+		return compose, errors.New("资源不存在!")
+	}
+
 	//声明一个工作池
 	var wg sync.WaitGroup
 	for i := 0; i < len(pcs); i++ {
@@ -107,9 +112,6 @@ func (baseOrm *BaseOrm) GetComposePackage(r *rest.Request) (models.ComposeModel,
 */
 func getPackageCourse(baseOrm *BaseOrm, package_id int64, wg *sync.WaitGroup) {
 	var (
-		pcs            []models.PackageCourseModel
-		courseIds      []int64
-		courses        []models.Course
 		composePackage models.ComposePackageModel
 	)
 
@@ -117,28 +119,13 @@ func getPackageCourse(baseOrm *BaseOrm, package_id int64, wg *sync.WaitGroup) {
 		wg.Done()
 	}()
 
-	if err := baseOrm.GetDB().Table("h_edu_packages").Where("id = ?", package_id).First(&composePackage).Error; err != nil {
+	if err := baseOrm.GetDB().Table("h_edu_packages").Where("id = ? and status = 2", package_id).First(&composePackage).Error; err != nil {
 		log.Info("资源获取错误!" + err.Error())
 		return
 	}
 
-	if err := baseOrm.GetDB().
-		Table("h_edu_package_course").
-		Select("course_id").
-		Find(&pcs).Error; err != nil {
-		log.Info("资源获取错误!" + err.Error())
-		return
-	}
-
-	for _, value := range pcs {
-		courseIds = append(courseIds, value.CourseId)
-	}
-
-	if err := baseOrm.GetDB().
-		Table("h_edu_courses").
-		Where("status = 2 and id in (?)", courseIds).
-		Select("id, type, title, subtitle, price, vip_price, discount, discount_end_at, cover_picture, back_picture, learn_num, buy_num, video_url").
-		Find(&courses).Error; err != nil {
+	courses, err := commonOperateForPackageCourses(baseOrm, package_id)
+	if err != nil {
 		log.Info("资源获取错误!" + err.Error())
 		return
 	}
@@ -147,4 +134,71 @@ func getPackageCourse(baseOrm *BaseOrm, package_id int64, wg *sync.WaitGroup) {
 	compose.ComposePackage = append(compose.ComposePackage, composePackage)
 
 	return
+}
+
+/**
+套餐详情
+*/
+func (baseOrm *BaseOrm) GetPackageDetail(r *rest.Request) (models.ComposePackageModel, error) {
+	var (
+		packageDetail  models.Package
+		composePackage models.ComposePackageModel
+	)
+	id, err := strconv.Atoi(r.PathParam("id"))
+	if err != nil {
+		log.Info("路由参数错误!")
+		return composePackage, errors.New("路由参数错误!" + err.Error())
+	}
+
+	if err := baseOrm.GetDB().Table("h_edu_packages").Where("id = ? and status = 2", id).First(&packageDetail).Error; err != nil {
+		log.Info("资源获取错误!" + err.Error())
+		return composePackage, errors.New("资源获取错误!" + err.Error())
+	}
+
+	courses, err := commonOperateForPackageCourses(baseOrm, id)
+	if err != nil {
+		return composePackage, err
+	}
+
+	composePackage.Package = packageDetail
+	composePackage.PackageCourse = courses
+	log.Printf("the composePackage is:%v", composePackage)
+
+	return composePackage, nil
+}
+
+/**
+获取套餐课程公共操作
+*/
+func commonOperateForPackageCourses(baseOrm *BaseOrm, id interface{}) (courses []models.Course, err error) {
+	var (
+		pcs       []models.PackageCourseModel
+		courseIds []int64
+	)
+
+	if err1 := baseOrm.GetDB().
+		Table("h_edu_package_course").
+		Select("course_id").
+		Where("package_id = ?", id).
+		Find(&pcs).Error; err1 != nil {
+		log.Info("资源获取错误!" + err1.Error())
+		err = err1
+		return
+	}
+
+	for _, value := range pcs {
+		courseIds = append(courseIds, value.CourseId)
+	}
+
+	if err2 := baseOrm.GetDB().
+		Table("h_edu_courses").
+		Where("status = 2 and id in (?)", courseIds).
+		Select("id, type, title, subtitle, price, vip_price, discount, discount_end_at, cover_picture, back_picture, learn_num, buy_num, video_url").
+		Find(&courses).Error; err2 != nil {
+		log.Info("资源获取错误!" + err2.Error())
+		err = err2
+		return
+	}
+
+	return courses, nil
 }

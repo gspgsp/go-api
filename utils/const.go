@@ -22,7 +22,7 @@ const API_PREFIX = "/api"
 const SERVER_PORT = "8086"
 
 //LogPath
-const LOG_PATH = "./src/edu_api/log"
+const LOG_PATH = "D:/gopath/src/edu_api/log"
 
 //Default log name
 const LOG_NAME = "request"

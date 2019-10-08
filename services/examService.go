@@ -79,5 +79,5 @@ func addMsg(i int) {
 		endTaskNumChan <- true
 	}()
 	//time.Sleep(1 * time.Second)
-	msgChan <- fmt.Sprint("当前是：", i)
+	msgChan <- fmt.Sprint("当前是新邮箱：", i)
 }

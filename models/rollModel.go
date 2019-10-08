@@ -18,5 +18,5 @@ type RollModel struct {
 	UpdatedAt       string     `json:"updated_at"`
 	CourseId        int64      `json:"course_id"`
 	ChapterId       int64      `json:"chapter_id,omitempty"`
-	Grade           GradeModel `json:"grade"`
+	Grade           GradeModel `json:"grade,omitempty"`
 }

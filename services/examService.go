@@ -2,34 +2,35 @@ package services
 
 import (
 	"edu_api/models"
+	"errors"
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
 )
 
-func (baseOrm *BaseOrm) GetExamRollTopicList(r *rest.Request) {
+func (baseOrm *BaseOrm) GetExamRollTopicList(r *rest.Request) (rollList []models.RollModel, err error) {
 	var (
-		rollList   []models.RollModel
 		gradeChan  chan models.GradeModel
 		endChan    chan bool
 		endChanNum int
 		allChanNum int
 	)
 
-	id, err := valid.ToInt(r.PathParam("id"))
-	if err != nil {
-		return
+	id, err1 := valid.ToInt(r.PathParam("id"))
+	if err1 != nil {
+		log.Info("获取请求参数错误:" + err1.Error())
+		return nil, err1
 	}
 
-	if err := baseOrm.GetDB().Table("h_exam_rolls").Where("course_id = ? and status = 2", id).Find(&rollList).Error; err != nil {
-		log.Info("获取数据错误:" + err.Error())
-		return
+	if err2 := baseOrm.GetDB().Table("h_exam_rolls").Where("course_id = ? and status = 2", id).Find(&rollList).Error; err != nil {
+		log.Info("获取数据错误:" + err2.Error())
+		return nil, err2
 	}
 
 	user = GetUserInfo(r.Header.Get("Authorization"))
 	//计算是否答过当前考卷，以及考试结果
 	if len(rollList) == 0 {
-		return
+		return nil, errors.New("当前课程无考卷信息")
 	}
 
 	allChanNum = len(rollList)
@@ -47,8 +48,11 @@ L:
 		select {
 		case grade, ok := <-gradeChan:
 			if ok {
-
-				log.Printf("the grade is:%v", grade)
+				for index, value := range rollList {
+					if value.Id == grade.RollId {
+						rollList[index].Grade = grade
+					}
+				}
 			}
 		case <-endChan:
 			endChanNum++
@@ -60,6 +64,7 @@ L:
 		}
 	}
 
+	return rollList, nil
 }
 
 /**

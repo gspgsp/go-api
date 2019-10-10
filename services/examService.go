@@ -64,6 +64,33 @@ L:
 		}
 	}
 
+	//数据单独处理
+	for i, val := range rollList {
+		if val.Mode == 1 { //随机模式，计算总分
+			score := 0
+			allScore := 0
+
+			rows, err := baseOrm.GetDB().
+				Table("h_exam_topics").
+				Joins("left join h_exam_roll_topic on h_exam_topics.id = h_exam_roll_topic.topic_id").
+				Where("h_exam_roll_topic.roll_id = ?", val.Id).Select("h_exam_topics.score").Rows()
+			if err == nil {
+				for rows.Next() {
+					rows.Scan(&score)
+					allScore += score
+				}
+			}
+			rollList[i].TotalScore = allScore
+		} else if val.Mode == 2 { //分值模式，计算总数
+			//暂无数据
+		}
+
+		//未答过，需要格式化答题时间为分钟；答过的题目直接给结果grade里面有结果
+		if val.Grade.Id == 0 {
+			rollList[i].LimitedAt, _ = FormatTime(val.LimitedAt)
+		}
+	}
+
 	return rollList, nil
 }
 
@@ -78,5 +105,11 @@ func getGrade(baseOrm *BaseOrm, rollId int64, userId int, gradeChan chan models.
 	}()
 
 	baseOrm.GetDB().Table("h_exam_grades").Where("roll_id = ? and user_id = ?", rollId, userId).First(&grade)
+	//grade.Id = 1
+	//grade.RollId = 2
+	//grade.CourseId = 2
+	//grade.ChapterId = 3
+	//grade.Point = 4
+	//grade.Result = `{"point": 4, "numbers": 10, "success": 4, "usetimes": 16, "all_point": 10}`
 	gradeChan <- grade
 }

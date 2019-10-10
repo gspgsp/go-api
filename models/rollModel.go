@@ -8,7 +8,7 @@ type RollModel struct {
 	Type            string     `json:"type"`
 	Title           string     `json:"title"`
 	Description     string     `json:"description,omitempty"`
-	TotalScore      int64      `json:"total_score,omitempty"`
+	TotalScore      int        `json:"total_score"`
 	Mode            int        `json:"mode"`
 	ItemCount       int64      `json:"item_count"`
 	PassedCondition string     `json:"passed_condition,omitempty"`

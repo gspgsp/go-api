@@ -1,12 +1,14 @@
 package services
 
 import (
+	"edu_api/models"
+	"edu_api/utils"
+	"fmt"
+	valid "github.com/asaskevich/govalidator"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"log"
 	"time"
-	"edu_api/utils"
-	"edu_api/models"
 )
 
 /**
@@ -29,7 +31,7 @@ func (that *BaseOrm) InitDB() {
 
 	v := utils.ConfigType{}
 
-	err = jsonStruct.Load("./src/edu_api/config/database.json", &v)
+	err = jsonStruct.Load("D:/gopath/src/edu_api/config/database.json", &v)
 
 	if err != nil {
 		log.Println("parse db config error!", err)
@@ -69,7 +71,7 @@ func (that *BaseOrm) GetDB() (DB *gorm.DB) {
 
 /**
 预处理数据
- */
+*/
 func Trees(list interface{}) interface{} {
 	data := formatDatas(list)
 	result := formatCores(0, data)
@@ -79,7 +81,7 @@ func Trees(list interface{}) interface{} {
 
 /**
 格式化数据
- */
+*/
 func formatDatas(list interface{}) interface{} {
 
 	switch value := list.(type) {
@@ -124,7 +126,7 @@ func formatDatas(list interface{}) interface{} {
 
 /**
 格式化数据核心方法
- */
+*/
 func formatCores(index int, data interface{}) interface{} {
 
 	switch value := data.(type) {
@@ -157,4 +159,18 @@ func formatCores(index int, data interface{}) interface{} {
 	}
 
 	return nil
+}
+
+/**
+格式化时间
+*/
+func FormatTime(time int64) (format_time int64, err error) {
+	if time > 0 {
+		format_time, err := valid.ToInt(fmt.Sprintf("%v", time/60))
+		if err != nil {
+			return 0, err
+		}
+		return format_time, nil
+	}
+	return 0, nil
 }

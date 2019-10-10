@@ -20,3 +20,15 @@ type RollModel struct {
 	ChapterId       int64      `json:"chapter_id,omitempty"`
 	Grade           GradeModel `json:"grade,omitempty"`
 }
+
+/**
+题库题目详情
+*/
+type RollInfoModel struct {
+	Id        int64        `json:"id"`
+	Title     string       `json:"title"`
+	ItemCount int64        `json:"item_count"`
+	LimitedAt int64        `json:"limited_at"`
+	CourseId  int64        `json:"course_id"`
+	Topics    []TopicModel `json:"topics"`
+}

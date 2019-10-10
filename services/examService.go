@@ -8,6 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/**
+获取题库题目列表
+*/
 func (baseOrm *BaseOrm) GetExamRollTopicList(r *rest.Request) (rollList []models.RollModel, err error) {
 	var (
 		gradeChan  chan models.GradeModel
@@ -112,4 +115,36 @@ func getGrade(baseOrm *BaseOrm, rollId int64, userId int, gradeChan chan models.
 	//grade.Point = 4
 	//grade.Result = `{"point": 4, "numbers": 10, "success": 4, "usetimes": 16, "all_point": 10}`
 	gradeChan <- grade
+}
+
+/**
+获取题库作业详情
+*/
+func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.RollInfoModel, err error) {
+
+	var (
+		topics []models.TopicModel
+	)
+	id, err1 := valid.ToInt(r.PathParam("id"))
+	if err1 != nil {
+		log.Info("获取请求参数错误:" + err1.Error())
+		return rollInfo, err1
+	}
+
+	if err2 := baseOrm.GetDB().Table("h_exam_rolls").Where("id = ? and status = 2", id).First(&rollInfo).Error; err2 != nil {
+		log.Info("获取数据错误:" + err2.Error())
+		return rollInfo, err2
+	}
+
+	if err3 := baseOrm.GetDB().
+		Table("h_exam_topics").
+		Joins("left join h_exam_roll_topic on h_exam_topics.id = h_exam_roll_topic.topic_id").
+		Where("h_exam_roll_topic.roll_id = ?", id).Select("h_exam_topics.*").Find(&topics).Error; err3 != nil {
+		log.Info("获取数据错误:" + err3.Error())
+		return rollInfo, err3
+	}
+
+	rollInfo.Topics = topics
+	log.Printf("the rollInfo is:%v", rollInfo)
+	return rollInfo, nil
 }

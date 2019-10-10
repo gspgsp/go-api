@@ -30,6 +30,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/compose/:id", new(edu.PackageController).GetComposePackage),    //获取组合套餐
 		rest.Get("/package/:id", new(edu.PackageController).GetPackageDetail),     //套餐详情
 		rest.Get("/exam/rolls/:id", new(edu.ExamController).GetExamRollTopicList), //获取题库作业列表
+		rest.Get("/exam/roll/:id", new(edu.ExamController).GetExamRollTopicInfo),  //获取题库作业详情
 	)
 
 	if err != nil {

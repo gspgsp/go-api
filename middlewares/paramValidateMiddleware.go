@@ -23,3 +23,34 @@ func (remark *Remark) RemarkValidator() (bool, error) {
 
 	return result, err
 }
+
+//保存答题验证
+type Answer struct {
+	CourseId  int64        `json:"course_id" valid:"required~课程id必须"`
+	RollId    int64        `json:"roll_id" valid:"required~试卷id必须"`
+	StartTime int64        `json:"start_time" valid:"required~答题用时必须"`
+	Answers   []AnswerData `json:"answer_data" valid:"required~答案必须"`
+}
+
+//具体答案选项
+type AnswerData struct {
+	TopicId int64  `json:"topic_id" valid:"required~题目id必须"`
+	Option  string `json:"option" valid:"required~当前题目选项必须"`
+}
+
+func (answer *Answer) AnswerValidator() (bool, error) {
+	//自定义验证规则，本来想自定义一个针对结构体嵌套的验证的，但是发现木有用；其实可以直接定义验证规则，验证器会自动嵌套验证，如上[]AnswerData
+	//valid.CustomTypeTagMap.Set("answerDataValidator", func(i, context interface{}) bool {
+	//	switch v := i.(type) {
+	//	case []AnswerData:
+	//		for _, e := range v {
+	//			res, _ := valid.ValidateStruct(e)
+	//			return res
+	//		}
+	//	}
+	//	return false
+	//})
+
+	result, err := valid.ValidateStruct(answer)
+	return result, err
+}

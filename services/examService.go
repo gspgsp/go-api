@@ -1,6 +1,7 @@
 package services
 
 import (
+	"edu_api/middlewares"
 	"edu_api/models"
 	"encoding/json"
 	"errors"
@@ -163,4 +164,12 @@ func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.R
 	rollInfo.Topics = topics
 
 	return rollInfo, nil
+}
+
+/**
+提交答案
+*/
+func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.Answer) (int, string) {
+
+	return 0, "操作成功"
 }

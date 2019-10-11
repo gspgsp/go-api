@@ -5,20 +5,20 @@ package models
 */
 type TopicModel struct {
 	Id            int64         `json:"id"`
-	Title         string        `json:"title"`
-	Type          string        `json:"type"`
+	Title         string        `json:"title,omitempty"`
+	Type          string        `json:"type,omitempty"`
 	Options       string        `json:"options,omitempty"`
 	Explan        string        `json:"explan,omitempty"`
-	Score         int           `json:"score"`
-	Difficulty    string        `json:"difficulty"`
-	Status        string        `json:"status"`
+	Score         int           `json:"score,omitempty"`
+	Difficulty    string        `json:"difficulty,omitempty"`
+	Status        string        `json:"status,omitempty"`
 	ExtendType    string        `json:"extend_type,omitempty"`
 	ExtendContent string        `json:"extend_content,omitempty"`
-	CreatedAt     string        `json:"created_at"`
-	UpdatedAt     string        `json:"updated_at"`
-	CourseId      int64         `json:"course_id"`
+	CreatedAt     string        `json:"created_at,omitempty"`
+	UpdatedAt     string        `json:"updated_at,omitempty"`
+	CourseId      int64         `json:"course_id,omitempty"`
 	ChapterId     int64         `json:"chapter_id,omitempty"`
-	ParseOptions  []OptionModel `json:"parse_options"` //对Options的处理
+	ParseOptions  []OptionModel `json:"parse_options,omitempty"` //对Options的处理
 }
 
 /**

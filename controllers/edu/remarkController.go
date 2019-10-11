@@ -31,6 +31,7 @@ func (remark *RemarkController) StoreRemark(w rest.ResponseWriter, r *rest.Reque
 		log.Info("验证错误:" + err.Error())
 		remark.controller.Err = err
 		remark.controller.JsonReturn(w, "result", err.Error())
+		return
 	}
 
 	if result {

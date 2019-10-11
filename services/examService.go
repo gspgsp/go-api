@@ -8,6 +8,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
+	"strings"
+	"sync"
 )
 
 /**
@@ -170,6 +172,84 @@ func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.R
 提交答案
 */
 func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.Answer) (int, string) {
+	var (
+		userCourse models.UserCourse
+		topics     []models.TopicModel
+		topicIds   []int64
+	)
 
-	return 0, "操作成功"
+	user = GetUserInfo(r.Header.Get("Authorization"))
+	baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", user.Id, answer.CourseId).Select("id").First(&userCourse)
+	if userCourse.Id > 0 {
+		for _, value := range answer.Answers {
+			topicIds = append(topicIds, value.TopicId)
+		}
+		//如果为0，则一定为自动提交(规定时间内没答题目)；当不为0的时候，可能为自动提交(没在规定时间内答完题目)
+		if len(topicIds) == 0 {
+			//中间表查询
+		} else {
+			//if err1 := baseOrm.GetDB().Table("h_exam_topics").Where("id in (?)", topicIds).Select("id, options").Find(&topics).Error; err1 != nil {
+			//	log.Info("查询错误:" + err1.Error())
+			//	return 1, "查询错误:" + err1.Error()
+			//}
+
+			if err1 := baseOrm.GetDB().Table("h_exam_topics").Joins("left join h_exam_roll_topic on h_exam_roll_topic.topic_id = h_exam_topics.id").Where("h_exam_topics.status = 1 and h_exam_roll_topic.roll_id = ?", answer.RollId).Select("h_exam_topics.id, h_exam_topics.options").Find(&topics).Error; err1 != nil {
+				log.Info("查询错误:" + err1.Error())
+				return 1, "查询错误:" + err1.Error()
+			}
+
+			//异步查询
+			var channel = make(chan []models.GradeLogResult, 4)
+			var endChannel = make(chan bool)
+			endNumber := 0
+			number := len(topics)
+			var wg sync.WaitGroup
+			for i := 0; i < len(topics); i++ {
+				wg.Add(1)
+				go judgeAnswerResult(channel, endChannel, baseOrm, topics[i].Id, topics[i].Options, answer.Answers, user.Id, answer.CourseId)
+			}
+			wg.Wait()
+		}
+
+		//label
+
+		return 0, "操作成功"
+	} else {
+		return 1, "当前用户没有此课程"
+	}
+}
+
+func judgeAnswerResult(channel chan []models.GradeLogResult, endChannel chan bool, baseOrm *BaseOrm, topicId int64, options string, userOption []middlewares.AnswerData, userId int, courseId int64) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.Info("运行异常:")
+		}
+		endChannel <- true
+	}()
+
+	var parseOptions []models.OptionModel
+	for _, value := range userOption {
+		if value.TopicId == topicId {
+			err := json.Unmarshal([]byte(options), &parseOptions)
+			if err != nil {
+				log.Info("题目选项解析错误:" + err.Error())
+				return
+			}
+
+			var rightSli []string
+			for _, val := range parseOptions {
+				if val.IsRight == "1" {
+					rightSli = append(rightSli, val.Num)
+				}
+			}
+
+			if value.Option == strings.Join(rightSli, "|") {
+
+			} else {
+
+			}
+
+		}
+	}
 }

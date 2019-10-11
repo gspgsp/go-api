@@ -49,6 +49,7 @@ func (exam *ExamController) StoreTopicAnswer(w rest.ResponseWriter, r *rest.Requ
 		log.Info("验证错误:" + err.Error())
 		exam.controller.Err = err
 		exam.controller.JsonReturn(w, "result", err.Error())
+		return
 	}
 
 	if result {
@@ -58,6 +59,7 @@ func (exam *ExamController) StoreTopicAnswer(w rest.ResponseWriter, r *rest.Requ
 		} else {
 			exam.controller.Err = errors.New(message)
 		}
+		exam.controller.JsonReturn(w, "result", message)
 	} else {
 		exam.controller.Err = errors.New("未知错误")
 		exam.controller.JsonReturn(w, "result", "")

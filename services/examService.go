@@ -2,6 +2,7 @@ package services
 
 import (
 	"edu_api/models"
+	"encoding/json"
 	"errors"
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
@@ -144,7 +145,22 @@ func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.R
 		return rollInfo, err3
 	}
 
+	var v []models.OptionModel
+	for i, val := range topics {
+		if err4 := json.Unmarshal([]byte(val.Options), &v); err4 != nil {
+			log.Info("解析答案错误:" + err4.Error())
+			return rollInfo, err4
+		}
+
+		for _, value := range v {
+			topics[i].ParseOptions = append(topics[i].ParseOptions, value)
+		}
+
+		//手动忽略掉json的option
+		topics[i].Options = ""
+	}
+
 	rollInfo.Topics = topics
-	log.Printf("the rollInfo is:%v", rollInfo)
+
 	return rollInfo, nil
 }

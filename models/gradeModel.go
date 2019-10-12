@@ -50,3 +50,13 @@ type GradeLogResult struct {
 	Num       string `json:"num"`
 	UserChose string `json:"user_chose"`
 }
+
+/**
+答题返回结果
+*/
+type AnswerReturn struct {
+	GradeResult
+	Result     string `json:"result"`
+	SubmitTime string `json:"submit_time"`
+	UseTime    string `json:"use_time"`
+}

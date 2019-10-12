@@ -282,7 +282,17 @@ func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.An
 			log.Info("插入答题记录成功")
 			tx.Commit()
 		}
-		return 0, "操作成功"
+
+		//返回结果
+		var answerReturn models.AnswerReturn
+		answerReturn.Point = point
+		answerReturn.AllPoint = allPoint
+		answerReturn.Success = success
+		answerReturn.Numbers = numbers
+		answerReturn.SubmitTime = created_at
+		answerReturn.UseTime = FormatTimeToChinese(time.Now().Unix() - answer.StartTime)
+
+		return 0, answerReturn
 	} else {
 		return 1, "当前用户没有此课程"
 	}

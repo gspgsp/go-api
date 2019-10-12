@@ -9,7 +9,7 @@ type TopicModel struct {
 	Type          string        `json:"type,omitempty"`
 	Options       string        `json:"options,omitempty"`
 	Explan        string        `json:"explan,omitempty"`
-	Score         int           `json:"score,omitempty"`
+	Score         int64         `json:"score,omitempty"`
 	Difficulty    string        `json:"difficulty,omitempty"`
 	Status        string        `json:"status,omitempty"`
 	ExtendType    string        `json:"extend_type,omitempty"`

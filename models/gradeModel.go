@@ -12,17 +12,16 @@ type GradeModel struct {
 	RollId    int64  `json:"'roll_id'"`
 	CourseId  int64  `json:"course_id"`
 	ChapterId int64  `json:"chapter_id,omitempty"`
-	UserId    int64  `json:"user_id"`
+	UserId    int    `json:"user_id"`
 }
 
 /**
 成绩表结果
 */
 type GradeResult struct {
-	RollId   int64 `json:"roll_id"`
 	Point    int64 `json:"point"`
-	Numbers  int64 `json:"numbers"`
-	Success  int64 `json:"success"`
+	Numbers  int   `json:"numbers"`
+	Success  int   `json:"success"`
 	UseTimes int64 `json:"use_times"`
 	AllPoint int64 `json:"all_point"`
 }
@@ -47,7 +46,7 @@ type GradeLogModel struct {
 成绩详情结果
 */
 type GradeLogResult struct {
-	TopicId   int64  `json:"topic_id"`
+	TopicId   int64  `json:"topic_id,omitempty"`
 	Num       string `json:"num"`
 	UserChose string `json:"user_chose"`
 }

@@ -5,11 +5,13 @@ import (
 	"edu_api/models"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 	"strings"
-	"sync"
+	"time"
 )
 
 /**
@@ -173,63 +175,131 @@ func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.R
 */
 func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.Answer) (int, string) {
 	var (
-		userCourse models.UserCourse
-		topics     []models.TopicModel
-		topicIds   []int64
+		userCourse     models.UserCourse
+		grade          models.GradeModel
+		topics         []models.TopicModel
+		gradeLogResult []models.GradeLogResult
+		allPoint       int64
+		point          int64
+		success        int
+		numbers        int
 	)
 
 	user = GetUserInfo(r.Header.Get("Authorization"))
 	baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", user.Id, answer.CourseId).Select("id").First(&userCourse)
 	if userCourse.Id > 0 {
-		for _, value := range answer.Answers {
-			topicIds = append(topicIds, value.TopicId)
+		//是否答过当前试卷
+		if err := baseOrm.GetDB().Table("h_exam_grades").Where("roll_id = ? and course_id = ? and user_id = ? ", answer.RollId, answer.CourseId, user.Id).Select("id").First(&grade).Error; err != nil {
+			log.Info("查询错误:" + err.Error())
+			return 1, "查询错误:" + err.Error()
 		}
-		//如果为0，则一定为自动提交(规定时间内没答题目)；当不为0的时候，可能为自动提交(没在规定时间内答完题目)
-		if len(topicIds) == 0 {
-			//中间表查询
-		} else {
-			//if err1 := baseOrm.GetDB().Table("h_exam_topics").Where("id in (?)", topicIds).Select("id, options").Find(&topics).Error; err1 != nil {
-			//	log.Info("查询错误:" + err1.Error())
-			//	return 1, "查询错误:" + err1.Error()
-			//}
+		if grade.Id > 0 {
+			log.Info("当前试卷已答过，请勿重复答题")
+			return 1, "当前试卷已答过，请勿重复答题"
+		}
 
-			if err1 := baseOrm.GetDB().Table("h_exam_topics").Joins("left join h_exam_roll_topic on h_exam_roll_topic.topic_id = h_exam_topics.id").Where("h_exam_topics.status = 1 and h_exam_roll_topic.roll_id = ?", answer.RollId).Select("h_exam_topics.id, h_exam_topics.options").Find(&topics).Error; err1 != nil {
-				log.Info("查询错误:" + err1.Error())
-				return 1, "查询错误:" + err1.Error()
-			}
+		//是否存在题目
+		if err1 := baseOrm.GetDB().Table("h_exam_topics").Joins("left join h_exam_roll_topic on h_exam_roll_topic.topic_id = h_exam_topics.id").Where("h_exam_topics.status = 1 and h_exam_roll_topic.roll_id = ?", answer.RollId).Select("h_exam_topics.id, h_exam_topics.options, h_exam_topics.score").Find(&topics).Error; err1 != nil {
+			log.Info("查询错误:" + err1.Error())
+			return 1, "查询错误:" + err1.Error()
+		}
 
-			//异步查询
-			var channel = make(chan []models.GradeLogResult, 4)
-			var endChannel = make(chan bool)
-			endNumber := 0
-			number := len(topics)
-			var wg sync.WaitGroup
-			for i := 0; i < len(topics); i++ {
-				wg.Add(1)
-				go judgeAnswerResult(channel, endChannel, baseOrm, topics[i].Id, topics[i].Options, answer.Answers, user.Id, answer.CourseId)
-			}
-			wg.Wait()
+		//异步查询
+		var channel = make(chan models.GradeLogResult, 30)
+		var endChannel = make(chan bool)
+		endNumber := 0
+		numbers = len(topics)
+		for i := 0; i < len(topics); i++ {
+			allPoint += topics[i].Score
+			go judgeAnswerResult(channel, endChannel, baseOrm, topics[i].Id, topics[i].Options, answer.Answers, user.Id, answer.CourseId)
 		}
 
 		//label
+	GradeLogResultChannelLabel:
+		for {
+			select {
+			case v, ok := <-channel:
+				if ok {
+					gradeLogResult = append(gradeLogResult, v)
+				}
+			case <-endChannel:
+				endNumber++
+				if endNumber == numbers {
+					close(channel)
+					break GradeLogResultChannelLabel
+				}
+			}
+		}
+		//统计结果
+		for _, value := range gradeLogResult {
+			if value.Num == value.UserChose {
+				success += 1
+				for _, val := range topics {
+					if val.Id == value.TopicId {
+						point += val.Score
+					}
+				}
+			}
+		}
 
+		//插入数据
+		insert_sql := "insert into `h_exam_grades` (`point`, `result`, `created_at`, `updated_at`, `roll_id`, `course_id`, `user_id`) values"
+		gradeResult := models.GradeResult{point, numbers, success, answer.StartTime, allPoint}
+		jsonStr, _ := json.Marshal(gradeResult)
+
+		now := models.JsonTime(time.Now())
+		created_at := strconv.Quote((&now).String())
+		updated_at := strconv.Quote((&now).String())
+		fmt.Printf("the string(jsonStr) is:%v", "`"+string(jsonStr)+"`")
+		insert_value := fmt.Sprintf("(%d,%s,%s,%s,%d,%d,%d)", point, "'"+string(jsonStr)+"'", created_at, updated_at, answer.RollId, answer.CourseId, user.Id)
+
+		tx := baseOrm.GetDB().Begin()
+		//因为gorm将golang自带的database/sql库的 Lastinsertid方法封装掉了，本来执行exec方法以后，可以返回结果集以取到最新一条数据的id;但是gorm操作下却不行
+		//所以我想到下面的链式操作，通过Last方法获取到最新一条插入的数据，这个因为是在tx下的操作，应该不会有问题
+		var grade models.GradeModel
+		err1 := tx.Exec(insert_sql + insert_value).Table("h_exam_grades").Last(&grade).Error
+
+		var err2 error
+		var is_correct = 0
+		for i := 0; i < len(gradeLogResult); i++ {
+			if gradeLogResult[i].Num == gradeLogResult[i].UserChose {
+				is_correct = 1
+			} else {
+				is_correct = 0
+			}
+
+			gradeLog := models.GradeLogResult{Num: gradeLogResult[i].Num, UserChose: gradeLogResult[i].UserChose}
+			jsonLogStr, _ := json.Marshal(gradeLog)
+			insert_grade_sql := "insert into `h_exam_grade_logs` (`is_correct`, `result`, `created_at`, `updated_at`, `grade_id`, `roll_id`, `course_id`, `topic_id`, `user_id`) values"
+			value := fmt.Sprintf("(%d,%s,%s,%s,%d,%d,%d,%d,%d)", is_correct, "'"+string(jsonLogStr)+"'", created_at, updated_at, grade.Id, answer.RollId, answer.CourseId, gradeLogResult[i].TopicId, user.Id)
+			err2 = tx.Exec(insert_grade_sql + value).Error
+		}
+
+		if err1 != nil || err2 != nil {
+			log.Info("事务操作出错:" + fmt.Sprintf("插入答题记录错误:%s", err1.Error()))
+			tx.Rollback()
+		} else {
+			log.Info("插入答题记录成功")
+			tx.Commit()
+		}
 		return 0, "操作成功"
 	} else {
 		return 1, "当前用户没有此课程"
 	}
 }
 
-func judgeAnswerResult(channel chan []models.GradeLogResult, endChannel chan bool, baseOrm *BaseOrm, topicId int64, options string, userOption []middlewares.AnswerData, userId int, courseId int64) {
+func judgeAnswerResult(channel chan models.GradeLogResult, endChannel chan bool, baseOrm *BaseOrm, topicId int64, options string, userOption []middlewares.AnswerData, userId int, courseId int64) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Info("运行异常:")
+			log.Info("goroutine运行异常:")
 		}
 		endChannel <- true
 	}()
 
 	var parseOptions []models.OptionModel
 	for _, value := range userOption {
+		//这里要求用户答的题目数和试卷上的一样，那么就一定可以找到对应的结果，就不用了处理else情况了
 		if value.TopicId == topicId {
 			err := json.Unmarshal([]byte(options), &parseOptions)
 			if err != nil {
@@ -243,13 +313,9 @@ func judgeAnswerResult(channel chan []models.GradeLogResult, endChannel chan boo
 					rightSli = append(rightSli, val.Num)
 				}
 			}
-
-			if value.Option == strings.Join(rightSli, "|") {
-
-			} else {
-
-			}
-
+			//记录日志
+			var gradeLogResult = models.GradeLogResult{topicId, strings.Join(rightSli, ","), value.Option}
+			channel <- gradeLogResult
 		}
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sort"
 )
 
 /**
@@ -173,7 +174,7 @@ func (baseOrm *BaseOrm) GetExamRollTopicInfo(r *rest.Request) (rollInfo models.R
 /**
 提交答案
 */
-func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.Answer) (int, string) {
+func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.Answer) (int, interface{}) {
 	var (
 		userCourse     models.UserCourse
 		grade          models.GradeModel
@@ -189,10 +190,7 @@ func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.An
 	baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", user.Id, answer.CourseId).Select("id").First(&userCourse)
 	if userCourse.Id > 0 {
 		//是否答过当前试卷
-		if err := baseOrm.GetDB().Table("h_exam_grades").Where("roll_id = ? and course_id = ? and user_id = ? ", answer.RollId, answer.CourseId, user.Id).Select("id").First(&grade).Error; err != nil {
-			log.Info("查询错误:" + err.Error())
-			return 1, "查询错误:" + err.Error()
-		}
+		baseOrm.GetDB().Table("h_exam_grades").Where("roll_id = ? and course_id = ? and user_id = ? ", answer.RollId, answer.CourseId, user.Id).Select("id").First(&grade)
 		if grade.Id > 0 {
 			log.Info("当前试卷已答过，请勿重复答题")
 			return 1, "当前试卷已答过，请勿重复答题"
@@ -261,17 +259,25 @@ func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.An
 
 		var err2 error
 		var is_correct = 0
-		for i := 0; i < len(gradeLogResult); i++ {
-			if gradeLogResult[i].Num == gradeLogResult[i].UserChose {
+		var gradeLogResultSlice models.GradeLogResultSlice = gradeLogResult
+
+		//重新排序，goroutine导致index混乱
+		var answerResultReturn []models.AnswerResultReturn
+		sort.Stable(gradeLogResultSlice)
+		for i := 0; i < len(gradeLogResultSlice); i++ {
+			if gradeLogResultSlice[i].Num == gradeLogResultSlice[i].UserChose {
 				is_correct = 1
 			} else {
 				is_correct = 0
 			}
 
-			gradeLog := models.GradeLogResult{Num: gradeLogResult[i].Num, UserChose: gradeLogResult[i].UserChose}
+			//最终返回结果集
+			answerResultReturn = append(answerResultReturn, models.AnswerResultReturn{(i + 1), is_correct})
+
+			gradeLog := models.GradeLogResult{Num: gradeLogResultSlice[i].Num, UserChose: gradeLogResultSlice[i].UserChose}
 			jsonLogStr, _ := json.Marshal(gradeLog)
 			insert_grade_sql := "insert into `h_exam_grade_logs` (`is_correct`, `result`, `created_at`, `updated_at`, `grade_id`, `roll_id`, `course_id`, `topic_id`, `user_id`) values"
-			value := fmt.Sprintf("(%d,%s,%s,%s,%d,%d,%d,%d,%d)", is_correct, "'"+string(jsonLogStr)+"'", created_at, updated_at, grade.Id, answer.RollId, answer.CourseId, gradeLogResult[i].TopicId, user.Id)
+			value := fmt.Sprintf("(%d,%s,%s,%s,%d,%d,%d,%d,%d)", is_correct, "'"+string(jsonLogStr)+"'", created_at, updated_at, grade.Id, answer.RollId, answer.CourseId, gradeLogResultSlice[i].TopicId, user.Id)
 			err2 = tx.Exec(insert_grade_sql + value).Error
 		}
 
@@ -290,8 +296,8 @@ func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.An
 		answerReturn.Success = success
 		answerReturn.Numbers = numbers
 		answerReturn.SubmitTime = created_at
-		answerReturn.UseTime = FormatTimeToChinese(time.Now().Unix() - answer.StartTime)
-
+		//answerReturn.UseTime = FormatTimeToChinese(time.Now().Unix() - answer.StartTime)
+		answerReturn.Result = answerResultReturn
 		return 0, answerReturn
 	} else {
 		return 1, "当前用户没有此课程"

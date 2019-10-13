@@ -52,11 +52,36 @@ type GradeLogResult struct {
 }
 
 /**
+重写排序类(三个方法)
+ */
+type GradeLogResultSlice []GradeLogResult
+
+func (s GradeLogResultSlice) Len() int {
+	return len(s)
+}
+
+func (s GradeLogResultSlice) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+//顺序asc
+func (s GradeLogResultSlice) Less(i, j int) bool {
+	return s[i].TopicId < s[j].TopicId
+}
+
+/**
 答题返回结果
 */
 type AnswerReturn struct {
 	GradeResult
-	Result     string `json:"result"`
-	SubmitTime string `json:"submit_time"`
-	UseTime    string `json:"use_time"`
+	Result     []AnswerResultReturn `json:"result"`
+	SubmitTime string               `json:"submit_time"`
+	UseTime    string               `json:"use_time"`
+}
+
+/**
+答题结果中的详细结果
+ */
+type AnswerResultReturn struct {
+	Id        int `json:"id"`
+	IsCorrect int `json:"is_correct"`
 }

@@ -57,7 +57,10 @@ func (exam *ExamController) StoreTopicAnswer(w rest.ResponseWriter, r *rest.Requ
 		if code == 0 {
 			exam.controller.Err = nil
 		} else {
-			exam.controller.Err = errors.New(message)
+			switch v := message.(type) {
+			case string:
+				exam.controller.Err = errors.New(v)
+			}
 		}
 		exam.controller.JsonReturn(w, "result", message)
 	} else {

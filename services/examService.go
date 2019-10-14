@@ -335,3 +335,99 @@ func judgeAnswerResult(channel chan models.GradeLogResult, endChannel chan bool,
 		}
 	}
 }
+
+/**
+答案解析
+*/
+func (baseOrm *BaseOrm) GetTopicAnswer(r *rest.Request) (int, interface{}) {
+	var (
+		userCourse models.UserCourse
+		gradeLog   []models.GradeLogModel
+		topicParse []models.TopicParseModel
+	)
+	id, err1 := valid.ToInt(r.PathParam("id"))
+	course_id, err2 := valid.ToInt(r.PathParam("course_id"))
+
+	if err1 != nil || err2 != nil {
+		log.Info("路由参数解析错误:")
+		return 1, errors.New("路由参数解析错误")
+	}
+
+	user = GetUserInfo(r.Header.Get("Authorization"))
+	baseOrm.GetDB().Table("h_user_course").Where("user_id = ? and course_id = ?", user.Id, course_id).Select("id").First(&userCourse)
+
+	if userCourse.Id == 0 {
+		log.Info("用户课程不存在")
+		return 1, errors.New("用户课程不存在")
+	}
+
+	if err3 := baseOrm.GetDB().Table("h_exam_grade_logs").Where("roll_id = ? and course_id = ? and user_id = ?", id, course_id, user.Id).Select("id, is_correct, result, topic_id").Find(&gradeLog).Error; err3 != nil {
+		log.Info("课程答题记录查询错误:" + err3.Error())
+		return 1, "课程答题记录查询错误:" + err3.Error()
+	}
+
+	channel := make(chan models.TopicModel, 1)
+	endChannel := make(chan bool)
+	endNumber := 0
+	numbers := len(gradeLog)
+	for i := 0; i < len(gradeLog); i++ {
+		go getTopicInfo(baseOrm, channel, endChannel, gradeLog[i].TopicId)
+	}
+
+TopicParseLabel:
+	for {
+		select {
+		case v, ok := <-channel:
+			if ok {
+				var (
+					temp            []models.OptionModel
+					is_correct      int
+					num, user_chose string
+				)
+				json.Unmarshal([]byte(v.Options), &temp)
+
+				for _, val := range gradeLog {
+					if val.TopicId == v.Id {
+						is_correct = val.IsCorrect
+						var gradeLogResult models.GradeLogResult
+						json.Unmarshal([]byte(val.Result), &gradeLogResult)
+						num = gradeLogResult.Num
+						user_chose = gradeLogResult.UserChose
+						break
+					}
+				}
+
+				topicParse = append(topicParse, models.TopicParseModel{Id: v.Id, Title: v.Title, Type: v.Type, Options: temp, Explan: v.Explan, Score: v.Score, IsCorrect: is_correct, GradeLogResult: models.GradeLogResult{Num: num, UserChose: user_chose}})
+			}
+		case <-endChannel:
+			endNumber++
+			if numbers == endNumber {
+				close(channel)
+				break TopicParseLabel
+			}
+		}
+	}
+
+	return 0, topicParse
+}
+
+func getTopicInfo(baseOrm *BaseOrm, channel chan models.TopicModel, endChannel chan bool, id int64) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			log.Info("goroutine运行异常:")
+		}
+		endChannel <- true
+	}()
+
+	var (
+		topicInfo models.TopicModel
+	)
+
+	if err := baseOrm.GetDB().Table("h_exam_topics").Where("id = ? and status = 1", id).First(&topicInfo).Error; err != nil {
+		log.Info("当前查询错误:" + err.Error())
+		return
+	}
+
+	channel <- topicInfo
+}

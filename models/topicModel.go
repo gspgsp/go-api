@@ -30,3 +30,14 @@ type OptionModel struct {
 	Content string `json:"content"`
 	IsRight string `json:"is_right"`
 }
+
+type TopicParseModel struct {
+	Id        int64         `json:"id"`
+	Title     string        `json:"title,omitempty"`
+	Type      string        `json:"type,omitempty"`
+	Options   []OptionModel `json:"options,omitempty"`
+	Explan    string        `json:"explan,omitempty"`
+	Score     int64         `json:"score,omitempty"`
+	IsCorrect int           `json:"is_correct"`
+	GradeLogResult
+}

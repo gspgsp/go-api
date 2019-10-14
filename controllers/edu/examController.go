@@ -68,3 +68,19 @@ func (exam *ExamController) StoreTopicAnswer(w rest.ResponseWriter, r *rest.Requ
 		exam.controller.JsonReturn(w, "result", "")
 	}
 }
+
+/**
+答案解析
+*/
+func (exam *ExamController) GetTopicAnswer(w rest.ResponseWriter, r *rest.Request) {
+	code, message := exam.controller.BaseOrm.GetTopicAnswer(r)
+	if code == 0 {
+		exam.controller.Err = nil
+	} else {
+		switch v := message.(type) {
+		case string:
+			exam.controller.Err = errors.New(v)
+		}
+	}
+	exam.controller.JsonReturn(w, "topic_parse", message)
+}

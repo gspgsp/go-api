@@ -33,13 +33,13 @@ type GradeLogModel struct {
 	Id        int64  `json:"id"`
 	IsCorrect int    `json:"is_correct"`
 	Result    string `json:"result,omitempty"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	GradeId   int64  `json:"grade_id"`
-	RollId    int64  `json:"roll_id"`
-	CourseId  int64  `json:"course_id"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	GradeId   int64  `json:"grade_id,omitempty"`
+	RollId    int64  `json:"roll_id,omitempty"`
+	CourseId  int64  `json:"course_id，omitempty"`
 	TopicId   int64  `json:"topic_id"`
-	UserId    int64  `json:"user_id"`
+	UserId    int64  `json:"user_id，omitempty"`
 }
 
 /**
@@ -53,7 +53,7 @@ type GradeLogResult struct {
 
 /**
 重写排序类(三个方法)
- */
+*/
 type GradeLogResultSlice []GradeLogResult
 
 func (s GradeLogResultSlice) Len() int {
@@ -63,6 +63,7 @@ func (s GradeLogResultSlice) Len() int {
 func (s GradeLogResultSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
 //顺序asc
 func (s GradeLogResultSlice) Less(i, j int) bool {
 	return s[i].TopicId < s[j].TopicId
@@ -80,7 +81,7 @@ type AnswerReturn struct {
 
 /**
 答题结果中的详细结果
- */
+*/
 type AnswerResultReturn struct {
 	Id        int `json:"id"`
 	IsCorrect int `json:"is_correct"`

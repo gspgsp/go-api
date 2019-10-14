@@ -9,10 +9,10 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"sort"
 )
 
 /**
@@ -296,7 +296,7 @@ func (baseOrm *BaseOrm) StoreTopicAnswer(r *rest.Request, answer *middlewares.An
 		answerReturn.Success = success
 		answerReturn.Numbers = numbers
 		answerReturn.SubmitTime = created_at
-		//answerReturn.UseTime = FormatTimeToChinese(time.Now().Unix() - answer.StartTime)
+		answerReturn.UseTime = FormatTimeToChinese(time.Now().Unix() - answer.StartTime)
 		answerReturn.Result = answerResultReturn
 		return 0, answerReturn
 	} else {

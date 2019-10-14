@@ -2,8 +2,8 @@ package user
 
 import (
 	"edu_api/controllers"
-	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
+	"github.com/ant0ine/go-json-rest/rest"
 )
 
 type UserController struct {
@@ -11,8 +11,8 @@ type UserController struct {
 }
 
 /**
-讲师列表
- */
+用户课程讲师列表
+*/
 func (user *UserController) GetLecturerList(w rest.ResponseWriter, r *rest.Request) {
 	var (
 		lecturers []models.User

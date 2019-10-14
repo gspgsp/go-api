@@ -31,7 +31,7 @@ func (that *BaseOrm) InitDB() {
 
 	v := utils.ConfigType{}
 
-	err = jsonStruct.Load("./src/edu_api/config/database.json", &v)
+	err = jsonStruct.Load("D:/gopath/src/edu_api/config/database.json", &v)
 
 	if err != nil {
 		log.Println("parse db config error!", err)
@@ -173,4 +173,25 @@ func FormatTime(time int64) (format_time int64, err error) {
 		return format_time, nil
 	}
 	return 0, nil
+}
+
+func FormatTimeToChinese(time int64) (format_time string) {
+	hour := valid.ToString(fmt.Sprintf("%v", time%(3600*24)/3600))
+	minute := valid.ToString(fmt.Sprintf("%v", ((time%(3600*24))%3600)/60))
+	second := valid.ToString(fmt.Sprintf("%v", ((time%(3600*24))%3600)%60))
+
+	res := ""
+	if len(hour) > 0 {
+		res += hour + "小时"
+	}
+
+	if len(minute) > 0 {
+		res += minute + "分"
+	}
+
+	if len(second) > 0 {
+		res += second + "秒"
+	}
+
+	return res
 }

@@ -4,6 +4,7 @@ import (
 	"edu_api/controllers/auth"
 	"edu_api/controllers/edu"
 	"edu_api/controllers/user"
+	"edu_api/controllers/vip"
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -33,6 +34,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/exam/roll/:id", new(edu.ExamController).GetExamRollTopicInfo),      //获取题库作业详情
 		rest.Post("/exam/roll/:id", new(edu.ExamController).StoreTopicAnswer),         //提交答案
 		rest.Get("/exam/roll/:id/:course_id", new(edu.ExamController).GetTopicAnswer), //答案解析
+		rest.Get("/vip/:id", new(vip.VipController).GetVipInfo),                       //VIP信息
 	)
 
 	if err != nil {

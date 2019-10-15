@@ -2,6 +2,7 @@ package vip
 
 import (
 	"edu_api/controllers"
+	"errors"
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -9,6 +10,19 @@ type VipController struct {
 	controller controllers.Controller
 }
 
-func GetVipInfo(w rest.ResponseWriter, r *rest.Request) {
+/**
+VIP信息
+*/
+func (vip *VipController) GetVipInfo(w rest.ResponseWriter, r *rest.Request) {
+	code, message := vip.controller.BaseOrm.GetVipInfo(r)
+	if code == 0 {
+		vip.controller.Err = nil
+	} else {
+		switch v := message.(type) {
+		case string:
+			vip.controller.Err = errors.New(v)
+		}
+	}
 
+	vip.controller.JsonReturn(w, "vip_info", message)
 }

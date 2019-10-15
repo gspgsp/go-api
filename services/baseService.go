@@ -3,11 +3,13 @@ package services
 import (
 	"edu_api/models"
 	"edu_api/utils"
+	"errors"
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -31,7 +33,7 @@ func (that *BaseOrm) InitDB() {
 
 	v := utils.ConfigType{}
 
-	err = jsonStruct.Load("./src/edu_api/config/database.json", &v)
+	err = jsonStruct.Load("D:/gopath/src/edu_api/config/database.json", &v)
 
 	if err != nil {
 		log.Println("parse db config error!", err)
@@ -194,4 +196,17 @@ func FormatTimeToChinese(time int64) (format_time string) {
 	}
 
 	return res
+}
+
+/**
+格式化时间为local时间
+*/
+func FormatLocalTime(time time.Time) (str string, err error) {
+	jsonTime := models.JsonTime(time)
+	if str := strconv.Quote((&jsonTime).String()); len(str) > 0 {
+		//去掉引号
+		return strconv.Unquote(str)
+	}
+
+	return "", errors.New("解析错误")
 }

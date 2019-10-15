@@ -7,6 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/**
+VIP信息
+*/
 func (baseOrm *BaseOrm) GetVipInfo(r *rest.Request) (int, interface{}) {
 	var (
 		vip models.VipModel
@@ -33,4 +36,11 @@ func (baseOrm *BaseOrm) GetVipInfo(r *rest.Request) (int, interface{}) {
 	vip.ParseUpdatedAt, _ = FormatLocalTime(vip.UpdatedAt)
 
 	return 0, vip
+}
+
+/**
+创建会员订单
+*/
+func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request) {
+
 }

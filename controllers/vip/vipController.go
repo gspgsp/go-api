@@ -26,3 +26,10 @@ func (vip *VipController) GetVipInfo(w rest.ResponseWriter, r *rest.Request) {
 
 	vip.controller.JsonReturn(w, "vip_info", message)
 }
+
+/**
+创建会员订单
+*/
+func (vip *VipController) CreateVipOrder(w rest.ResponseWriter, r *rest.Request) {
+
+}

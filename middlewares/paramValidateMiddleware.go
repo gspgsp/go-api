@@ -54,3 +54,14 @@ func (answer *Answer) AnswerValidator() (bool, error) {
 	result, err := valid.ValidateStruct(answer)
 	return result, err
 }
+
+//创建VIP订单验证
+type VipOrder struct {
+	Id     int64  `json:"id" valid:"in(1)~vip id 必须为1"`
+	Source string `json:"source" valid:"-"`
+}
+
+func (vipOrder *VipOrder) VipOrderValidator() (bool, error) {
+	result, err := valid.ValidateStruct(vipOrder)
+	return result, err
+}

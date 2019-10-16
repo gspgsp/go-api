@@ -34,3 +34,6 @@ const (
 	LATEST_CLASS_WATCH_INFO         = "latest:class:%d:watch:info"
 	LATEST_CLASS_CHAPTER_WATCH_INFO = "latest:class:%d:chapter:%d:watch:info"
 )
+
+//订单支付过期时间(小时)
+const PAYMENT_EXPIRED_HOUR = 48

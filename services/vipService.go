@@ -76,11 +76,12 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 	}
 	vipOrderData := make(map[string]interface{})
 
+	vipOrderData["no"] = "2019087895623"
 	vipOrderData["amount"] = vip.Price
 	vipOrderData["source"] = vipOrder.Source
 	vipOrderData["user_id"] = user.Id
 	vipOrderData["vip_id"] = vip.ID
-	vipOrderData["discount_amount"] = 0
+	vipOrderData["discount_amount"] = 0.0
 	vipOrderData["created_at"] = createdAt
 	vipOrderData["updated_at"] = createdAt
 	t := time.Now().Unix()
@@ -91,6 +92,19 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		vipOrderData["payment_amount"] = fmt.Sprintf("%.2f", vip.Price-vip.Discount)
 	} else {
 		vipOrderData["payment_amount"] = vip.Price
+	}
+
+	insert_sql := "insert into `h_vip_orders` (`no`, `amount`, `source`, `user_id`, `vip_id`, `discount_amount`, `created_at`, `updated_at`, `payment_expired_at`, `payment_amount`) values"
+	insert_value := fmt.Sprintf("(%s,%f,%s,%d,%d,%f,%s,%s,%s,%f)", vipOrderData["no"], vipOrderData["amount"], `'`+vipOrder.Source+`'`, vipOrderData["user_id"], vipOrderData["vip_id"], vipOrderData["discount_amount"], "'"+createdAt+"'", "'"+createdAt+"'", "'"+fmt.Sprint(time.Unix(t+utils.PAYMENT_EXPIRED_HOUR*3600, 0).Format("2006-01-02 15:04:05"))+"'", vipOrderData["payment_amount"])
+
+	tx := baseOrm.GetDB().Begin()
+	err := tx.Exec(insert_sql + insert_value).Error
+	if err != nil {
+		log.Info("事务操作出错:" + fmt.Sprintf("插入VIP订单错误:%s", err.Error))
+		tx.Rollback()
+	} else {
+		log.Info("插入VIP订单成功")
+		tx.Commit()
 	}
 
 	log.Printf("vipOrderData is:%v", vipOrderData)

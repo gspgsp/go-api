@@ -58,7 +58,7 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		return 1, "您已经是荣耀终身会员，无需再次购买"
 	}
 	var (
-		vips      models.VipModel
+		vips      models.VipOrderModel
 		createdAt string
 		//updatedAt string
 	)
@@ -101,13 +101,15 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 	if err != nil {
 		log.Info("事务操作出错:" + fmt.Sprintf("插入VIP订单错误:%s", err.Error))
 		tx.Rollback()
+		return 1, "VIP订单创建失败"
 	} else {
 		log.Info("插入VIP订单成功")
 
 		//向任务队列插入任务
-
+		time.AfterFunc(time.Second*3600*48, func() {
+			log.Info("任务完成，订单号为:"+fmt.Sprintf("%s", vipOrderData["no"]))
+		})
 		tx.Commit()
+		return 0, "VIP订单创建成功"
 	}
-
-	return 1, "VIP订单创建成功"
 }

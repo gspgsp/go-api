@@ -53,7 +53,6 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 	}
 
 	user = GetUserInfo(r.Header.Get("Authorization"))
-
 	if user.Level == vip.VipLevel {
 		log.Info("您已经是荣耀终身会员，无需再次购买")
 		return 1, "您已经是荣耀终身会员，无需再次购买"
@@ -76,7 +75,7 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 	}
 	vipOrderData := make(map[string]interface{})
 
-	vipOrderData["no"] = "2019087895623"
+	vipOrderData["no"] = utils.GenerateOrderNo()
 	vipOrderData["amount"] = vip.Price
 	vipOrderData["source"] = vipOrder.Source
 	vipOrderData["user_id"] = user.Id
@@ -104,10 +103,11 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		tx.Rollback()
 	} else {
 		log.Info("插入VIP订单成功")
+
+		//向任务队列插入任务
+
 		tx.Commit()
 	}
 
-	log.Printf("vipOrderData is:%v", vipOrderData)
-
-	return 1, ""
+	return 1, "VIP订单创建成功"
 }

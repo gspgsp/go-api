@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"github.com/jmcvetta/randutil"
+	"time"
 )
 
 /**
@@ -140,4 +142,13 @@ func RetainNumber(number float64) float64 {
 	pValue, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", value), 64)
 
 	return pValue
+}
+
+/**
+生成订单号:YmdHis
+ */
+func GenerateOrderNo() string {
+	tim := time.Now().Format("20060102150405")
+	num, _ := randutil.IntRange(100000, 999999)
+	return fmt.Sprintf("%s%s", tim, strconv.Itoa(num))
 }

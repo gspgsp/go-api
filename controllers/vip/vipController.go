@@ -47,7 +47,14 @@ func (vip *VipController) CreateVipOrder(w rest.ResponseWriter, r *rest.Request)
 	}
 
 	if result {
-		vip.controller.BaseOrm.CreateVipOrder(r, &vipOrder)
+		code, message := vip.controller.BaseOrm.CreateVipOrder(r, &vipOrder)
+		if code == 0 {
+			vip.controller.Err = nil
+		} else {
+			vip.controller.Err = errors.New(message)
+		}
+
+		vip.controller.JsonReturn(w, "vip_order", message)
 	} else {
 		vip.controller.Err = errors.New("未知错误")
 		vip.controller.JsonReturn(w, "result", "")

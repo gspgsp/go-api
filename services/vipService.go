@@ -131,8 +131,8 @@ func SendDelayQueueRequest()  {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil{
-		//panic(err)
-		fmt.Printf("the err is:%v", err.Error())
+		log.Info("发送队列任务错误:"+err.Error())
+		panic(err)
 	}
 	defer resp.Body.Close()
 }

@@ -9,6 +9,8 @@ import (
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
 	"time"
+	"net/http"
+	"bytes"
 )
 
 /**
@@ -106,10 +108,31 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		log.Info("插入VIP订单成功")
 
 		//向任务队列插入任务
-		time.AfterFunc(time.Second*3600*48, func() {
-			log.Info("任务完成，订单号为:"+fmt.Sprintf("%s", vipOrderData["no"]))
-		})
+		//time.AfterFunc(time.Second*3600*48, func() {
+		//	log.Info("任务完成，订单号为:"+fmt.Sprintf("%s", vipOrderData["no"]))
+		//})
+		SendDelayQueueRequest()
 		tx.Commit()
 		return 0, "VIP订单创建成功"
 	}
+}
+
+/**
+发送任务
+ */
+func SendDelayQueueRequest()  {
+	post :=`{"topic":"order","id":"15702398324","delay":3600,"ttr":120,"body":"do something"}`
+	var jsonStr = []byte(post)
+
+	url := "http://39.106.141.78:9277/push"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil{
+		//panic(err)
+		fmt.Printf("the err is:%v", err.Error())
+	}
+	defer resp.Body.Close()
 }

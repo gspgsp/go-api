@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"edu_api/middlewares"
 	"edu_api/models"
 	"edu_api/utils"
@@ -8,9 +9,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
-	"time"
 	"net/http"
-	"bytes"
+	"time"
 )
 
 /**
@@ -119,9 +119,9 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 
 /**
 发送任务
- */
-func SendDelayQueueRequest()  {
-	post :=`{"topic":"order","id":"15702398324","delay":3600,"ttr":120,"body":"do something"}`
+*/
+func SendDelayQueueRequest() {
+	post := `{"topic":"close_vip_order","id":"15702398324","delay":3600,"ttr":120,"body":"do something"}`
 	var jsonStr = []byte(post)
 
 	url := "http://39.106.141.78:9277/push"
@@ -130,8 +130,8 @@ func SendDelayQueueRequest()  {
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	if err != nil{
-		log.Info("发送队列任务错误:"+err.Error())
+	if err != nil {
+		log.Info("发送队列任务错误:" + err.Error())
 		panic(err)
 	}
 	defer resp.Body.Close()

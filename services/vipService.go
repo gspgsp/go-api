@@ -124,7 +124,7 @@ func SendDelayQueueRequest() {
 	post := `{"topic":"close_vip_order","id":"15702398324","delay":3600,"ttr":120,"body":"do something"}`
 	var jsonStr = []byte(post)
 
-	url := "http://39.106.141.78:9277/push"
+	url := "http://39.106.141.78:9266/push"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 

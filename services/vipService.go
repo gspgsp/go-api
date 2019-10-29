@@ -121,7 +121,7 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 发送任务
 */
 func SendDelayQueueRequest() {
-	post := `{"topic":"close_vip_order","id":"15702398324","delay":3600,"ttr":120,"body":"do something"}`
+	post := `{"topic":"close_vip_order","id":"15702398324","delay":3600,"ttr":120,"body":"{'order_id':125}"}`
 	var jsonStr = []byte(post)
 
 	url := "http://39.106.141.78:9266/push"

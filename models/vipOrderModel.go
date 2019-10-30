@@ -7,7 +7,7 @@ type VipOrderModel struct {
 	No                   string    `json:"no"`
 	Amount               float64   `json:"amount"`
 	DiscountAmount       float64   `json:"discount_amount"`
-	PaymentOrderNo       float64   `json:"payment_order_no"`
+	PaymentOrderNo       string    `json:"payment_order_no"`
 	PaymentAmount        float64   `json:"payment_amount"`
 	ReceiptAmount        float64   `json:"receipt_amount"`
 	PaymentMethod        int       `json:"payment_method"`

@@ -5,11 +5,13 @@ import (
 	"edu_api/middlewares"
 	"edu_api/models"
 	"edu_api/utils"
+	"encoding/json"
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -99,7 +101,8 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 	insert_value := fmt.Sprintf("(%s,%f,%s,%d,%d,%f,%s,%s,%s,%f)", vipOrderData["no"], vipOrderData["amount"], `'`+vipOrder.Source+`'`, vipOrderData["user_id"], vipOrderData["vip_id"], vipOrderData["discount_amount"], "'"+createdAt+"'", "'"+createdAt+"'", "'"+fmt.Sprint(time.Unix(t+utils.PAYMENT_EXPIRED_HOUR*3600, 0).Format("2006-01-02 15:04:05"))+"'", vipOrderData["payment_amount"])
 
 	tx := baseOrm.GetDB().Begin()
-	err := tx.Exec(insert_sql + insert_value).Error
+	var order models.VipOrderModel
+	err := tx.Exec(insert_sql + insert_value).Table("h_vip_orders").Last(&order).Error
 	if err != nil {
 		log.Info("事务操作出错:" + fmt.Sprintf("插入VIP订单错误:%s", err.Error))
 		tx.Rollback()
@@ -108,10 +111,7 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		log.Info("插入VIP订单成功")
 
 		//向任务队列插入任务
-		//time.AfterFunc(time.Second*3600*48, func() {
-		//	log.Info("任务完成，订单号为:"+fmt.Sprintf("%s", vipOrderData["no"]))
-		//})
-		SendDelayQueueRequest()
+		SendDelayQueueRequest(vipOrderData["no"].(string), strconv.Itoa(order.ID))
 		tx.Commit()
 		return 0, "VIP订单创建成功"
 	}
@@ -120,13 +120,34 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 /**
 发送任务
 */
-func SendDelayQueueRequest() {
-	post := `{"topic":"close_vip_order","id":"15702398324","delay":3600,"ttr":120,"body":"{'order_id':125}"}`
-	var jsonStr = []byte(post)
+func SendDelayQueueRequest(id, order_id string) {
+	//post := `{"topic":"close_vip_order","id":`+id+`,"delay":3600,"ttr":120,"body":"{'order_id':`+order_id+`}"}`
+	//log.Info("the post is:", post)
 
-	url := "http://39.106.141.78:9266/push"
+	var closeOrder models.CloseOrder
+	closeOrder.Topic = "close_vip_order"
+	closeOrder.ID = id
+	closeOrder.Delay = "3600"
+	closeOrder.TTR = "120"
+	closeOrder.Body = models.CloseOrderBody{order_id}
+
+	log.Info("the closeOrder is:", closeOrder)
+	jsonStr, err := json.Marshal(closeOrder)
+
+	log.Info("the jsonStr is:", jsonStr)
+
+	if err != nil {
+		log.Info("the error is:", err.Error())
+	}
+
+	//url := "http://job.gsplovedss.xyz/push"
+	url := "127.0.0.1:9266/push"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Info("json解析错误:" + err.Error())
+		panic(err)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

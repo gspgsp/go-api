@@ -121,14 +121,11 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 发送任务
 */
 func SendDelayQueueRequest(id, order_id string) {
-	//post := `{"topic":"close_vip_order","id":`+id+`,"delay":3600,"ttr":120,"body":"{'order_id':`+order_id+`}"}`
-	//log.Info("the post is:", post)
-
 	var closeOrder models.CloseOrder
 	closeOrder.Topic = "close_vip_order"
 	closeOrder.ID = id
-	closeOrder.Delay = "3600"
-	closeOrder.TTR = "120"
+	closeOrder.Delay = 25
+	closeOrder.TTR = 120
 	closeOrder.Body = models.CloseOrderBody{order_id}
 
 	log.Info("the closeOrder is:", closeOrder)
@@ -141,8 +138,9 @@ func SendDelayQueueRequest(id, order_id string) {
 	}
 
 	//url := "http://job.gsplovedss.xyz/push"
-	url := "127.0.0.1:9266/push"
+	url := "http://127.0.0.1:9266/push"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		log.Info("json解析错误:" + err.Error())

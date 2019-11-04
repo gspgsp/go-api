@@ -138,7 +138,6 @@ func SendDelayQueueRequest(id, order_id string) {
 	}
 
 	url := utils.DELAY_JOB_URL
-	//url := "http://127.0.0.1:9266/push"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 
 	req.Header.Set("Content-Type", "application/json")

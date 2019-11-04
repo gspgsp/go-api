@@ -137,7 +137,7 @@ func SendDelayQueueRequest(id, order_id string) {
 		log.Info("the error is:", err.Error())
 	}
 
-	url := utils.DELAY_JOB_URL
+	url := utils.DELAY_JOB_URL + ":" + utils.DELAY_JOB_PORT + "/" + closeOrder.Topic
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 
 	req.Header.Set("Content-Type", "application/json")

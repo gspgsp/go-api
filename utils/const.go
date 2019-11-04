@@ -22,7 +22,7 @@ const API_PREFIX = "/api"
 const SERVER_PORT = "8086"
 
 //LogPath
-const LOG_PATH = "./src/edu_api/log"
+const LOG_PATH = "D:/gopath/src/edu_api/log"
 
 //Default log name
 const LOG_NAME = "request"
@@ -37,3 +37,6 @@ const (
 
 //订单支付过期时间(小时)
 const PAYMENT_EXPIRED_HOUR = 48
+
+//延时任务请求地址
+const DELAY_JOB_URL = "http://job.gsplovedss.xyz/push"

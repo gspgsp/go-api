@@ -1,22 +1,22 @@
 package services
 
 import (
-	"github.com/garyburd/redigo/redis"
-	"io/ioutil"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
-	"time"
-	jwt2 "github.com/dgrijalva/jwt-go"
 	"edu_api/models"
 	"edu_api/utils"
-	"strconv"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	jwt2 "github.com/dgrijalva/jwt-go"
+	"github.com/garyburd/redigo/redis"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
+	"io/ioutil"
+	"strconv"
+	"time"
 )
 
 /**
 redis缓存类
- */
+*/
 //redis配置对象
 type RedisConf struct {
 	Redis redisYaml
@@ -34,7 +34,7 @@ type redisYaml struct {
 //获取redis配置对象
 func getRedisConf() (redisConf RedisConf, err error) {
 	conf := RedisConf{}
-	cacheFile, err := ioutil.ReadFile("./src/edu_api/config/redis.yaml")
+	cacheFile, err := ioutil.ReadFile("D:/gopath/src/edu_api/config/redis.yaml")
 
 	if err != nil {
 		return conf, err
@@ -109,7 +109,7 @@ func GetRedisCache(authHeaderToken string, act, val string) (info string) {
 
 /**
 获取缓存的用户信息
- */
+*/
 func GetUserInfo(authHeaderToken string) (user models.User) {
 	info := GetRedisCache(authHeaderToken, "hget", "info")
 
@@ -151,4 +151,4 @@ func SetClassChapterMediumPlayInfo(userId, courseId, chapterId, info interface{}
 
 /**
 mongoDb缓存类
- */
+*/

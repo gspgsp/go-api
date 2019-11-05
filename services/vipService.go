@@ -6,6 +6,7 @@ import (
 	"edu_api/models"
 	"edu_api/utils"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	valid "github.com/asaskevich/govalidator"
@@ -124,8 +125,8 @@ func SendDelayQueueRequest(id, order_id string) {
 	var closeOrder models.CloseOrder
 	closeOrder.Topic = "close_vip_order"
 	closeOrder.ID = id
-	closeOrder.Delay = 25
-	closeOrder.TTR = 120
+	closeOrder.Delay = utils.DELAY_JOB_CLOSE
+	closeOrder.TTR = utils.DELAY_JOB_TTL
 	closeOrder.Body = models.CloseOrderBody{order_id}
 
 	log.Info("the closeOrder is:", closeOrder)
@@ -153,4 +154,41 @@ func SendDelayQueueRequest(id, order_id string) {
 		panic(err)
 	}
 	defer resp.Body.Close()
+}
+
+/**
+取消VIP订单
+*/
+func (baseOrm *BaseOrm) DeleteVipOrder(r *rest.Request) (int, interface{}) {
+	id, err := valid.ToInt(r.PathParam("id"))
+	if err != nil {
+		log.Info("获取路由参数错误:" + err.Error())
+		return 1, "获取路由参数错误:" + err.Error()
+	}
+
+	user = GetUserInfo(r.Header.Get("Authorization"))
+
+	//先查询是否有这个订单，类似Laravel的策略模式
+	var vipOrder models.VipOrderModel
+	if err := baseOrm.GetDB().Table("h_vip_orders").Where("id = ? and user_id = ?", id, user.Id).First(&vipOrder).Error; err != nil {
+		log.Info("未找到当前用户订单信息")
+		return 1, err.Error()
+	}
+
+	if vipOrder.Status != 0 || vipOrder.PaymentStatus != 0 {
+		log.Info("订单不存在")
+		return 1, errors.New("订单不存在")
+	}
+
+	extra := `'{"deleted_reason":"用户删除当前订单"}'`
+	updatedAt, _ := FormatLocalTime(time.Now())
+
+	sql := fmt.Sprintf("update h_vip_orders set status = -3, payment_status = -1, extra = %s, updated_at = %s where id = %d", extra, updatedAt, id)
+
+	if err := baseOrm.GetDB().Exec(sql).Error; err != nil {
+		log.Printf("取消vip订单出错:%v\n", err.Error())
+		return 1, err.Error()
+	}
+
+	return 0, "取消订单成功"
 }

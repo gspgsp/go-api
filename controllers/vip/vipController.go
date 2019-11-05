@@ -60,3 +60,21 @@ func (vip *VipController) CreateVipOrder(w rest.ResponseWriter, r *rest.Request)
 		vip.controller.JsonReturn(w, "result", "")
 	}
 }
+
+/**
+VIP取消会员订单
+*/
+func (vip *VipController) DeleteVipOrder(w rest.ResponseWriter, r *rest.Request) {
+	code, message := vip.controller.BaseOrm.DeleteVipOrder(r)
+
+	if code == 0 {
+		vip.controller.Err = nil
+	} else {
+		switch v := message.(type) {
+		case string:
+			vip.controller.Err = errors.New(v)
+		}
+	}
+
+	vip.controller.JsonReturn(w, "vip_order", message)
+}

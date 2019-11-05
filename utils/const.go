@@ -39,7 +39,13 @@ const (
 const PAYMENT_EXPIRED_HOUR = 48
 
 //延时任务请求地址
-const DELAY_JOB_URL = "http://127.0.0.1"
+const DELAY_JOB_URL = "http://job.gsplovedss.xyz"
 
 //延时任务端口
 const DELAY_JOB_PORT = "9266"
+
+//订单延时关闭时间
+const DELAY_JOB_CLOSE = 172800
+
+//订单延时操作，过期重试时间（如果操作失败，3分钟以内可以重试）
+const DELAY_JOB_TTL = 180

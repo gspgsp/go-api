@@ -36,7 +36,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/exam/roll/:id/:course_id", new(edu.ExamController).GetTopicAnswer), //答案解析
 		rest.Get("/vip/:id", new(vip.VipController).GetVipInfo),                       //VIP信息
 		rest.Post("/vip/add", new(vip.VipController).CreateVipOrder),                  //创建会员订单
-		rest.Post("/vip/:id", new(vip.VipController).DeleteVipOrder),                  //取消会员订单
+		rest.Delete("/vip/:id", new(vip.VipController).DeleteVipOrder),                //取消会员订单
 	)
 
 	if err != nil {

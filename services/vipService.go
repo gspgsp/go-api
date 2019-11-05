@@ -183,7 +183,7 @@ func (baseOrm *BaseOrm) DeleteVipOrder(r *rest.Request) (int, interface{}) {
 	extra := `'{"deleted_reason":"用户删除当前订单"}'`
 	updatedAt, _ := FormatLocalTime(time.Now())
 
-	sql := fmt.Sprintf("update h_vip_orders set status = -3, payment_status = -1, extra = %s, updated_at = %s where id = %d", extra, updatedAt, id)
+	sql := fmt.Sprintf("update h_vip_orders set status = -3, payment_status = -1, extra = %s, updated_at = %s where id = %d", extra, "'"+updatedAt+"'", id)
 
 	if err := baseOrm.GetDB().Exec(sql).Error; err != nil {
 		log.Printf("取消vip订单出错:%v\n", err.Error())

@@ -3,6 +3,7 @@ package routes
 import (
 	"edu_api/controllers/auth"
 	"edu_api/controllers/edu"
+	"edu_api/controllers/home"
 	"edu_api/controllers/user"
 	"edu_api/controllers/vip"
 	"github.com/ant0ine/go-json-rest/rest"
@@ -37,6 +38,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/vip/:id", new(vip.VipController).GetVipInfo),                       //VIP信息
 		rest.Post("/vip/add", new(vip.VipController).CreateVipOrder),                  //创建会员订单
 		rest.Delete("/vip/:id", new(vip.VipController).DeleteVipOrder),                //取消会员订单
+		rest.Get("/notice", new(home.NoticeController).GetNotice),                     //公告信息
 	)
 
 	if err != nil {

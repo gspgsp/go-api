@@ -26,7 +26,7 @@ func (baseOrm *BaseOrm) GetNotice(r *rest.Request) (int, interface{}) {
 	}
 
 	var notices []models.NoticeModel
-	if err := baseOrm.GetDB().Table("h_notices").Where("status = 1 and type = ? and start_at < ? and (end_at > ? or end_at = 0)", nType, int32(time.Now().Unix()), int32(time.Now().Unix())).Select("id", "type", "title", "content", "status").Limit(limit).Find(&notices).Error; err != nil {
+	if err := baseOrm.GetDB().Table("h_notices").Where("status = 1 and type = ? and start_at < ? and (end_at > ? or end_at = 0)", nType, int32(time.Now().Unix()), int32(time.Now().Unix())).Select("id, type, title, content, status").Limit(limit).Find(&notices).Error; err != nil {
 		log.Info("获取公告出错")
 		return 1, err.Error()
 	}

@@ -39,6 +39,7 @@ func InitRoute() (rest.App, error) {
 		rest.Post("/vip/add", new(vip.VipController).CreateVipOrder),                  //创建会员订单
 		rest.Delete("/vip/:id", new(vip.VipController).DeleteVipOrder),                //取消会员订单
 		rest.Get("/notice", new(home.NoticeController).GetNotice),                     //公告信息
+		rest.Get("/slide", new(home.SlideController).GetSlide),                        //轮播信息
 	)
 
 	if err != nil {

@@ -16,7 +16,7 @@ func IfMiddleware() *rest.IfMiddleware {
 
 			path := request.URL.Path
 
-			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)|(/recommend[/\d+]?)|(/try[/\d+]?)|(/compose[/\d+]?)|(/package[/\d+]?)`
+			expr := `(/login)|(/register)|(/package)|(/course[/\d+]?)|(/category)|(/chapter[/\d+]?)|(/lecture[/\d+]?)|(/review[/\d+]?)|(/recommend[/\d+]?)|(/try[/\d+]?)|(/compose[/\d+]?)|(/package[/\d+]?)|(/notice)|(/slide)`
 			re, _ := regexp.Compile(expr)
 
 			all := re.FindAllString(path, -1)

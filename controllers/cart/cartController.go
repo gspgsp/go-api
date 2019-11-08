@@ -46,3 +46,7 @@ func (cart *CartController) AddCartInfo(w rest.ResponseWriter, r *rest.Request) 
 		cart.controller.JsonReturn(w, "result", "")
 	}
 }
+
+func (cart *CartController) GetCartList(w rest.ResponseWriter, r *rest.Request) {
+	//code, message := cart.controller.BaseOrm.GetCartList(r)
+}

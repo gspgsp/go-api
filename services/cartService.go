@@ -67,3 +67,7 @@ func (baseOrm *BaseOrm) AddCartInfo(r *rest.Request, addCart *middlewares.AddCar
 
 	return 0, "添加成功"
 }
+
+func (baseOrm *BaseOrm) GetCartList(r *rest.Request) (int, interface{}) {
+	return 1, "ok"
+}

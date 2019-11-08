@@ -2,6 +2,7 @@ package routes
 
 import (
 	"edu_api/controllers/auth"
+	"edu_api/controllers/cart"
 	"edu_api/controllers/edu"
 	"edu_api/controllers/home"
 	"edu_api/controllers/user"
@@ -40,6 +41,7 @@ func InitRoute() (rest.App, error) {
 		rest.Delete("/vip/:id", new(vip.VipController).DeleteVipOrder),                //取消会员订单
 		rest.Get("/notice", new(home.NoticeController).GetNotice),                     //公告信息
 		rest.Get("/slide", new(home.SlideController).GetSlide),                        //轮播信息
+		rest.Post("/cart", new(cart.CartController).AddCartInfo),                      //添加购物车
 	)
 
 	if err != nil {

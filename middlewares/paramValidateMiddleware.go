@@ -65,3 +65,13 @@ func (vipOrder *VipOrder) VipOrderValidator() (bool, error) {
 	result, err := valid.ValidateStruct(vipOrder)
 	return result, err
 }
+
+//添加购物车验证
+type AddCart struct {
+	CourseId int64 `json:"course_id" valid:"required~课程id必须"`
+}
+
+func (addCart *AddCart) AddCartValidator() (bool, error) {
+	result, err := valid.ValidateStruct(addCart)
+	return result, err
+}

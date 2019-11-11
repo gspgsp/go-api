@@ -68,6 +68,26 @@ func (baseOrm *BaseOrm) AddCartInfo(r *rest.Request, addCart *middlewares.AddCar
 	return 0, "添加成功"
 }
 
+/**
+购物车列表
+*/
 func (baseOrm *BaseOrm) GetCartList(r *rest.Request) (int, interface{}) {
+	user = GetUserInfo(r.Header.Get("Authorization"))
+
+	var cartList []models.Cart
+
+	if err := baseOrm.GetDB().Table("h_carts").Where("user_id = ?", user.Id).Find(&cartList).Error; err != nil {
+		log.Info("获取数据错误:" + err.Error())
+		return 1, err.Error()
+	}
+
+	for index, value := range cartList {
+		baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", value.CourseId).First(&cartList[index].Course)
+	}
+
+	return 0, cartList
+}
+
+func (baseOrm *BaseOrm) DelCart(r *rest.Request) (int, interface{}) {
 	return 1, "ok"
 }

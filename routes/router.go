@@ -43,6 +43,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/slide", new(home.SlideController).GetSlide),                        //轮播信息
 		rest.Post("/cart", new(cart.CartController).AddCartInfo),                      //添加购物车
 		rest.Get("/cart", new(cart.CartController).GetCartList),                       //购物车列表
+		rest.Delete("/cart/:id", new(cart.CartController).DelCart),                    //删除购物车
 	)
 
 	if err != nil {

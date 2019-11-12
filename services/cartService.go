@@ -5,6 +5,7 @@ import (
 	"edu_api/models"
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 /**
@@ -88,6 +89,18 @@ func (baseOrm *BaseOrm) GetCartList(r *rest.Request) (int, interface{}) {
 	return 0, cartList
 }
 
+/**
+删除购物车
+*/
 func (baseOrm *BaseOrm) DelCart(r *rest.Request) (int, interface{}) {
-	return 1, "ok"
+	user = GetUserInfo(r.Header.Get("Authorization"))
+	id, _ := strconv.Atoi(r.PathParam("id"))
+	cart := models.Cart{ID: id}
+
+	if err := baseOrm.GetDB().Table("h_carts").Where("user_id = ?", user.Id).Delete(&cart).Error; err != nil {
+		log.Info("删除数据错误:" + err.Error())
+		return 1, err.Error()
+	}
+
+	return 0, "删除成功"
 }

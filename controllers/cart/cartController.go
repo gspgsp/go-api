@@ -65,6 +65,20 @@ func (cart *CartController) GetCartList(w rest.ResponseWriter, r *rest.Request) 
 	cart.controller.JsonReturn(w, "cart", message)
 }
 
+/**
+删除购物车
+*/
 func (cart *CartController) DelCart(w rest.ResponseWriter, r *rest.Request) {
+	code, message := cart.controller.BaseOrm.DelCart(r)
 
+	if code == 0 {
+		cart.controller.Err = nil
+	} else {
+		switch v := message.(type) {
+		case string:
+			cart.controller.Err = errors.New(v)
+		}
+	}
+
+	cart.controller.JsonReturn(w, "result", message)
 }

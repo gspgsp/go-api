@@ -5,6 +5,7 @@ import (
 	"edu_api/controllers/cart"
 	"edu_api/controllers/edu"
 	"edu_api/controllers/home"
+	"edu_api/controllers/order"
 	"edu_api/controllers/user"
 	"edu_api/controllers/vip"
 	"github.com/ant0ine/go-json-rest/rest"
@@ -44,6 +45,7 @@ func InitRoute() (rest.App, error) {
 		rest.Post("/cart", new(cart.CartController).AddCartInfo),                      //添加购物车
 		rest.Get("/cart", new(cart.CartController).GetCartList),                       //购物车列表
 		rest.Delete("/cart/:id", new(cart.CartController).DelCart),                    //删除购物车
+		rest.Post("/order/submit", new(order.OrderController).SubmitOrder),            //提交订单
 	)
 
 	if err != nil {

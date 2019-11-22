@@ -1,24 +1,24 @@
 package utils
 
 import (
-	"math"
-	"strconv"
-	"reflect"
-	"errors"
 	"bytes"
-	"net"
-	"strings"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jmcvetta/randutil"
+	"io/ioutil"
+	"math"
+	"net"
+	"net/http"
+	"reflect"
+	"strconv"
+	"strings"
 	"time"
 )
 
 /**
 课件类型转换
- */
+*/
 func TransferMaterialType(m string) (m_type string) {
 	switch m {
 	case "courseware":
@@ -38,7 +38,7 @@ func TransferMaterialType(m string) (m_type string) {
 
 /**
 课件大小转换
- */
+*/
 func TransferMaterialSize(s float64) (s_size string) {
 
 	if s >= 1073741824 {
@@ -56,7 +56,7 @@ func TransferMaterialSize(s float64) (s_size string) {
 
 /**
 查找数组、切片或者字典中是否存在某个值
- */
+*/
 func Contain(obj interface{}, target interface{}) (bool, error) {
 
 	targetValue := reflect.ValueOf(target)
@@ -88,7 +88,7 @@ func ContactHashKey(args ...string) string {
 
 /**
 获取内网ip
- */
+*/
 func GetLocalIP() string {
 	conn, _ := net.Dial("udp", "8.8.8.8:80")
 	defer conn.Close()
@@ -99,7 +99,7 @@ func GetLocalIP() string {
 
 /**
 获取外网ip
- */
+*/
 func GetPublicIp() string {
 	resp, err := http.Get("http://myexternalip.com/raw")
 	if err != nil {
@@ -134,7 +134,7 @@ func TaoBaoAPI(ip string) *IPInfo {
 
 /**
 重新处理小数：保留n位以及是否四舍五入
- */
+*/
 func RetainNumber(number float64) float64 {
 
 	value := math.Trunc(number*1e1+0.5) * 1e-1
@@ -146,9 +146,17 @@ func RetainNumber(number float64) float64 {
 
 /**
 生成订单号:YmdHis
- */
+*/
 func GenerateOrderNo() string {
 	tim := time.Now().Format("20060102150405")
 	num, _ := randutil.IntRange(100000, 999999)
 	return fmt.Sprintf("%s%s", tim, strconv.Itoa(num))
+}
+
+/**
+格式化时间字符串到标准时间
+*/
+func ParseStringTImeToStand(str string) (time.Time, error) {
+	formatTime, err := time.Parse(TIME_DEFAULT_FORMAT, str)
+	return formatTime, err
 }

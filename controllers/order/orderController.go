@@ -19,6 +19,7 @@ func (order *OrderController) SubmitOrder(w rest.ResponseWriter, r *rest.Request
 	var commitOrder middlewares.CommitOrder
 	if err := r.DecodeJsonPayload(&commitOrder); err != nil {
 		log.Info("参数格式不正确:" + err.Error())
+		return
 	}
 
 	result, err := (&commitOrder).CommitOrderValidator()

@@ -49,3 +49,6 @@ const DELAY_JOB_CLOSE = 172800
 
 //订单延时操作，过期重试时间（如果操作失败，3分钟以内可以重试）
 const DELAY_JOB_TTL = 180
+
+//默认时间格式
+const TIME_DEFAULT_FORMAT = "2006-01-02 15:04:05"

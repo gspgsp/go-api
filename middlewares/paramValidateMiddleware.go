@@ -3,6 +3,7 @@ package middlewares
 import (
 	"errors"
 	valid "github.com/asaskevich/govalidator"
+	"strings"
 )
 
 func init() {
@@ -81,28 +82,29 @@ func (addCart *AddCart) AddCartValidator() (bool, error) {
 type CommitOrder struct {
 	Source string `json:"Source" valid:"-"`
 	Type   string `json:"type" valid:"-"`
-	Ids    string `json:"ids" valid:"-"`
+	Ids    string `json:"ids" valid:"legalId"`
 }
 
 func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {
 	//本来想用struct的in查询的，发现in(字符串不行)
 	if !valid.IsIn(commitOrder.Source, "pc", "mb") || !valid.IsIn(commitOrder.Type, "course", "package", "training") {
 		return false, errors.New("客户端来源/课程类型不正确")
-	} else {
-		return true, nil
 	}
 
-	//这里如果直接用 services.BaseOrm的话会报错误: import cycle not allowed
-	//valid.TagMap["legalId"] = valid.Validator(func(str string) bool {
-	//
-	//	return false
-	//})
-	//
-	//result, err := valid.ValidateStruct(commitOrder)
-	//
-	//if err != nil {
-	//	return  result, errors.New("课程不合法")
-	//}
-	//
-	//return result, nil
+	//这里如果直接用 services.BaseOrm的话会报错误: import cycle not allowed，这里直接验证ids是否合理
+	valid.TagMap["legalId"] = valid.Validator(func(str string) bool {
+		ids := strings.Split(str, ",")
+		if len(ids) == 0 {
+			return false
+		}
+		return true
+	})
+
+	result, err := valid.ValidateStruct(commitOrder)
+
+	if err != nil {
+		return result, errors.New("参数错误")
+	}
+
+	return result, nil
 }

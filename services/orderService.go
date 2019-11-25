@@ -32,13 +32,15 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 		if packages.Id == 0 {
 			return 1, "未找到对应ID套餐信息"
 		}
-		initBaseData(packages, auth)
-	} else {
+		initBaseData(packages, auth, baseOrm)
+	} else if commitOrder.Type == "course" {
 		baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", ids).Find(&courses)
 		if len(courses) == 0 {
 			return 1, "未找到对应ID课程信息"
 		}
-		initBaseData(courses, auth)
+		initBaseData(courses, auth, baseOrm)
+	} else if commitOrder.Type == "training" {
+		//训练营
 	}
 
 	//'amount' => $this->formatFloat($this->amount),
@@ -52,7 +54,7 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 /**
 初始化数据
 */
-func initBaseData(data interface{}, auth string) float32 {
+func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) {
 
 	dataValue := reflect.ValueOf(data)
 	user = GetUserInfo(auth)
@@ -77,12 +79,16 @@ func initBaseData(data interface{}, auth string) float32 {
 		}
 		break
 	case reflect.Struct:
-		val := dataValue.Interface().(models.Package)
+		if dataValue.Type().Name() == "Package" {
+			val := dataValue.Interface().(models.Package)
 
-		surface_price = val.Price
-		formatTime, _ := utils.ParseStringTImeToStand(val.DiscountEndAt)
-		if formatTime.Unix() > time.Now().Unix() {
-			discount_price = val.Discount
+			surface_price = val.Price
+			formatTime, _ := utils.ParseStringTImeToStand(val.DiscountEndAt)
+			if formatTime.Unix() > time.Now().Unix() {
+				discount_price = val.Discount
+			}
+		} else if dataValue.Type().Name() == "Training" {
+			//训练营的课程，
 		}
 
 		break
@@ -92,6 +98,82 @@ func initBaseData(data interface{}, auth string) float32 {
 
 	log.Info("the surface_price is:", surface_price)
 	log.Info("the discount_price is:", discount_price)
+	log.Info("the type is:", dataValue.Type().Name())
+}
 
-	return 0.23
+func checkOrderIsValid(data interface{}, user models.User, baseOrm *BaseOrm) (bool, error) {
+	if checkCourseIsFreeOrVipFree(data, user, baseOrm) {
+		return false, utils.ReturnErrors("该订单有免费课程，无法完成下单")
+	}
+
+	if checkUserHasOrder(data, user, baseOrm) {
+		return false, utils.ReturnErrors("当前课程在您未支付的订单中已经存在，无法购买")
+	}
+
+	if checkUserHasCourse(data, user, baseOrm) {
+		return false, utils.ReturnErrors("课程已兑换/购买")
+	}
+
+	return true, nil
+}
+
+/**
+检查订单是否包含免费课程以及会员免费学习的课程
+*/
+func checkCourseIsFreeOrVipFree(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+	switch val := data.(type) {
+	case models.Course:
+		if (val.Type == "free" || val.Price == 0) || (val.VipLevel == 1 && user.Level == "vip1") {
+			return true
+		}
+		return false
+	case models.Package:
+		//套餐里的课程只用判断套餐是否会员免费就可以了，外是内是；外不是内不是；
+		if val.VipLevel == 1 && user.Level == "vip1" {
+			return true
+		}
+
+		var courses []models.Course
+		var course_id = 0
+		var course_ids []int
+		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+		if err == nil {
+			for rows.Next() {
+				rows.Scan(&course_id)
+				course_ids = append(course_ids, course_id)
+			}
+
+			baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
+
+			if len(courses) > 0 {
+				for _, value := range courses {
+					if value.Type == "free" {
+						return true
+					}
+				}
+			}
+		}
+	default:
+		return false
+	}
+
+	return false
+}
+
+func checkUserHasOrder(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+	//switch val := data.(type) {
+	//case models.Course:
+	//
+	//	return false
+	//case models.Package:
+	//
+	//default:
+	//	return false
+	//}
+	return true
+}
+
+func checkUserHasCourse(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+
+	return true
 }

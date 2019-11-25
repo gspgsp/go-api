@@ -160,3 +160,13 @@ func ParseStringTImeToStand(str string) (time.Time, error) {
 	formatTime, err := time.Parse(TIME_DEFAULT_FORMAT, str)
 	return formatTime, err
 }
+
+/**
+格式化error信息
+*/
+func ReturnErrors(info string) error {
+	if len(info) == 0 {
+		return nil
+	}
+	return errors.New(info)
+}

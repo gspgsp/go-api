@@ -94,9 +94,9 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 					discount_price += val.Discount
 				}
 			} else {
-				if val.VipLevel == 0 && val.VipPrice > 0 {
+				if val.VipLevel == 0 && val.VipPrice > 0 { //会员非免费，同时又会员价
 					surface_price += val.VipPrice
-				} else {
+				} else { //会员非免费，木有会员价
 					surface_price += val.Price
 				}
 			}
@@ -121,13 +121,13 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 
 				formatTime, _ := utils.ParseStringTImeToStand(course.DiscountEndAt)
 				if formatTime.Unix() > time.Now().Unix() {
-					discount_price += course.Discount
+					discount_price = course.Discount
 				}
 			} else {
 				if course.VipLevel == 0 && course.VipPrice > 0 {
-					surface_price += course.VipPrice
+					surface_price = course.VipPrice
 				} else {
-					surface_price += course.Price
+					surface_price = course.Price
 				}
 			}
 		}

@@ -80,15 +80,21 @@ func (addCart *AddCart) AddCartValidator() (bool, error) {
 
 //提交订单验证
 type CommitOrder struct {
-	Source string `json:"Source" valid:"-"`
-	Type   string `json:"type" valid:"-"`
-	Ids    string `json:"ids" valid:"legalId"`
+	Source     string `json:"Source" valid:"-"`
+	Type       string `json:"type" valid:"-"`
+	Ids        string `json:"ids" valid:"legalId"`
+	PeriodId   int    `json:"period_id" valid:"-"`
+	TrainingId int    `json:"training_id" valid:"-"`
 }
 
 func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {
 	//本来想用struct的in查询的，发现in(字符串不行)
 	if !valid.IsIn(commitOrder.Source, "pc", "mb") || !valid.IsIn(commitOrder.Type, "course", "package", "training") {
 		return false, errors.New("客户端来源/课程类型不正确")
+	}
+
+	if commitOrder.Type == "training" && (commitOrder.PeriodId == 0 && commitOrder.TrainingId == 0) {
+		return false, errors.New("训练营/期ID必须")
 	}
 
 	//这里如果直接用 services.BaseOrm的话会报错误: import cycle not allowed，这里直接验证ids是否合理

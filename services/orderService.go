@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	surface_price  float32
-	discount_price float32
+	surface_price  float32 //总标价
+	discount_price float32 //总折扣价
 )
 
 /**
@@ -34,13 +34,19 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 		if packages.Id == 0 {
 			return 1, "未找到对应ID套餐信息"
 		}
-		initBaseData(packages, auth, baseOrm)
+
+		if _, err := initBaseData(packages, auth, baseOrm); err != nil {
+			return 1, err.Error()
+		}
 	} else if commitOrder.Type == "course" {
 		baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", ids).Find(&courses)
 		if len(courses) == 0 {
 			return 1, "未找到对应ID课程信息"
 		}
-		initBaseData(courses, auth, baseOrm)
+
+		if _, err := initBaseData(courses, auth, baseOrm); err != nil {
+			return 1, err.Error()
+		}
 	} else if commitOrder.Type == "training" {
 		//训练营
 		baseOrm.GetDB().Table("h_edu_periods").Where("id = ? and status != 'closed'", commitOrder.PeriodId).Find(&periods)
@@ -53,7 +59,10 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 		if trainings.ID == 0 {
 			return 1, "未找到对应营的信息"
 		}
-		initBaseData(periods, auth, baseOrm)
+
+		if _, err := initBaseData(periods, auth, baseOrm); err != nil {
+			return 1, err.Error()
+		}
 	}
 
 	return 0, "ok"
@@ -62,11 +71,12 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 /**
 初始化数据
 */
-func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) {
+func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error) {
 
-	res, err := checkOrderIsValid(data, user, baseOrm)
-	if res && err != nil {
+	_, err := checkOrderIsValid(data, user, baseOrm)
+	if err != nil {
 		log.Info("数据验证错误:", err.Error())
+		return false, err
 	}
 
 	dataValue := reflect.ValueOf(data)
@@ -103,17 +113,30 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) {
 			}
 		} else if dataValue.Type().Name() == "Period" {
 			//训练营的课程，
-			//val := dataValue.Interface().(models.Period)
+			var course models.Course
+			val := dataValue.Interface().(models.Period)
+			baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
+			if user.Level != "vip1" {
+				surface_price = course.Price
 
+				formatTime, _ := utils.ParseStringTImeToStand(course.DiscountEndAt)
+				if formatTime.Unix() > time.Now().Unix() {
+					discount_price += course.Discount
+				}
+			} else {
+				if course.VipLevel == 0 && course.VipPrice > 0 {
+					surface_price += course.VipPrice
+				} else {
+					surface_price += course.Price
+				}
+			}
 		}
 		break
 	default:
 		break
 	}
 
-	log.Info("the surface_price is:", surface_price)
-	log.Info("the discount_price is:", discount_price)
-	log.Info("the type is:", dataValue.Type().Name())
+	return true, nil
 }
 
 /**

@@ -11,15 +11,55 @@ import (
 	"time"
 )
 
+/**
+课程价格信息
+*/
+type coursePrice struct {
+	price    map[int]interface{}
+	discount map[int]interface{}
+	coupon   map[int]interface{}
+	payment  map[int]interface{}
+}
+
+/**
+课程优惠券
+*/
+type availableCoupon struct {
+	course     map[int]int
+	category   map[int]interface{}
+	courseType map[int]interface{}
+	training   map[int]interface{}
+}
+
 var (
-	surface_price  float32 //总标价
-	discount_price float32 //总折扣价
+	order_type       string          //订单类型
+	surface_price    float32         //总标价
+	discount_price   float32         //总折扣价
+	course_price     coursePrice     //课程价格信息
+	available_coupon availableCoupon //可用的优惠券信息
 )
+
+/**
+map初始化，用于存储可用的优惠券信息，按照优惠券分类来区分
+*/
+func Init() {
+	course_price.price = make(map[int]interface{})
+	course_price.discount = make(map[int]interface{})
+	course_price.coupon = make(map[int]interface{})
+	course_price.payment = make(map[int]interface{})
+
+	available_coupon.course = make(map[int]int)
+	available_coupon.category = make(map[int]interface{})
+	available_coupon.courseType = make(map[int]interface{})
+	available_coupon.training = make(map[int]interface{})
+}
 
 /**
 提交订单
 */
 func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
+
+	Init()
 
 	var courses []models.Course
 	var packages models.Package
@@ -28,6 +68,7 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 	var ids []string
 	auth := r.Header.Get("Authorization")
 	ids = strings.Split(commitOrder.Ids, ",")
+	order_type = commitOrder.Type
 
 	if commitOrder.Type == "package" {
 		baseOrm.GetDB().Table("h_edu_packages").Where("id in (?) and status = 'published'", ids).Find(&packages)
@@ -86,16 +127,24 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 	case reflect.Slice:
 		for i := 0; i < dataValue.Len(); i++ {
 			val := dataValue.Index(i).Interface().(models.Course)
+
+			//初始化价格信息
+			course_price.price[val.Id] = val.Price
+			course_price.discount[val.Id] = 0
+			course_price.coupon[val.Id] = 0
+
 			if user.Level != "vip1" {
 				surface_price += val.Price
 
 				formatTime, _ := utils.ParseStringTImeToStand(val.DiscountEndAt)
 				if formatTime.Unix() > time.Now().Unix() {
 					discount_price += val.Discount
+					course_price.discount[val.Id] = val.Discount
 				}
 			} else {
 				if val.VipLevel == 0 && val.VipPrice > 0 { //会员非免费，同时又会员价
 					surface_price += val.VipPrice
+					course_price.price[val.Id] = val.VipPrice
 				} else { //会员非免费，木有会员价
 					surface_price += val.Price
 				}
@@ -111,21 +160,47 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 			if formatTime.Unix() > time.Now().Unix() {
 				discount_price = val.Discount
 			}
+
+			var courses []models.Course
+			var course_id = 0
+			var course_ids []int
+			rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+			if err == nil {
+				for rows.Next() {
+					rows.Scan(&course_id)
+					course_ids = append(course_ids, course_id)
+				}
+
+				baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
+				for _, value := range courses {
+					course_price.price[value.Id] = value.Price
+					course_price.discount[value.Id] = 0
+					course_price.coupon[value.Id] = 0
+				}
+			}
 		} else if dataValue.Type().Name() == "Period" {
 			//训练营的课程，
 			var course models.Course
 			val := dataValue.Interface().(models.Period)
 			baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
+
+			//初始化价格信息
+			course_price.price[course.Id] = course.Price
+			course_price.discount[course.Id] = 0
+			course_price.coupon[course.Id] = 0
+
 			if user.Level != "vip1" {
 				surface_price = course.Price
 
 				formatTime, _ := utils.ParseStringTImeToStand(course.DiscountEndAt)
 				if formatTime.Unix() > time.Now().Unix() {
 					discount_price = course.Discount
+					course_price.discount[course.Id] = course.Discount
 				}
 			} else {
 				if course.VipLevel == 0 && course.VipPrice > 0 {
 					surface_price = course.VipPrice
+					course_price.price[course.Id] = course.VipPrice
 				} else {
 					surface_price = course.Price
 				}
@@ -136,6 +211,11 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 		break
 	}
 
+	//计算可用优惠券的课程
+	calculateAvailableCoupon()
+
+	log.Info("course is:%v", course_price)
+	log.Info("coupon is:%v", available_coupon)
 	return true, nil
 }
 
@@ -301,5 +381,20 @@ func checkUserHasCourse(data interface{}, user models.User, baseOrm *BaseOrm) bo
 		return false
 	default:
 		return false
+	}
+}
+
+/**
+计算价格为0的课程，计算可用优惠券的课程
+*/
+func calculateAvailableCoupon() {
+	if order_type == "package" {
+		return
+	}
+
+	for index, value := range course_price.price {
+		if value == 0 {
+			available_coupon.course[index] = index
+		}
 	}
 }

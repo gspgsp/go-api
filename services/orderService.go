@@ -106,6 +106,9 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 		}
 	}
 
+	//获取返回数据
+	getData()
+
 	return 0, "ok"
 }
 
@@ -212,10 +215,10 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 	}
 
 	//计算可用优惠券的课程
-	calculateAvailableCoupon()
+	calculateAvailableCoupon(baseOrm)
 
-	log.Info("course is:%v", course_price)
-	log.Info("coupon is:%v", available_coupon)
+	log.Info("course is:", course_price)
+	log.Info("coupon is:", available_coupon.training)
 	return true, nil
 }
 
@@ -387,14 +390,109 @@ func checkUserHasCourse(data interface{}, user models.User, baseOrm *BaseOrm) bo
 /**
 计算价格为0的课程，计算可用优惠券的课程
 */
-func calculateAvailableCoupon() {
+func calculateAvailableCoupon(baseOrm *BaseOrm) {
 	if order_type == "package" {
 		return
 	}
 
-	for index, value := range course_price.price {
+	for index, value := range course_price.discount {
 		if value == 0 {
+			//按课程(这里展示了所有的课程)
 			available_coupon.course[index] = index
+
+			//按类目
+			row := baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and type = 'boutique'", index).Select("category_id").Row()
+			var category_id int
+			err := row.Scan(&category_id)
+			if err == nil {
+				var c_ids []int
+				switch val := available_coupon.category[category_id].(type) {
+				case []int:
+					val = append(val, index)
+					c_ids = append(c_ids, val...)
+					available_coupon.category[category_id] = c_ids
+					break
+				default:
+					c_ids = append(c_ids, index)
+					available_coupon.category[category_id] = c_ids
+				}
+			}
+
+			//按套餐(这个单独考虑，因为只有一个)
+			//按课程类型(1为精品课，2为体系课)、按训练营
+			row2 := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", index).Select("type").Row()
+			var course_type string
+			err2 := row2.Scan(&course_type)
+			if err2 == nil {
+				if course_type == "boutique" {
+					var c_ids []int
+					switch val := available_coupon.courseType[1].(type) {
+					case []int:
+						val = append(val, index)
+						c_ids = append(c_ids, val...)
+						available_coupon.courseType[1] = c_ids
+						break
+					default:
+						c_ids = append(c_ids, index)
+						available_coupon.courseType[1] = c_ids
+					}
+				} else if course_type == "class" {
+					var c_ids []int
+					switch val := available_coupon.courseType[2].(type) {
+					case []int:
+						val = append(val, index)
+						c_ids = append(c_ids, val...)
+						available_coupon.courseType[2] = c_ids
+						break
+					default:
+						c_ids = append(c_ids, index)
+						available_coupon.courseType[2] = c_ids
+					}
+				} else if course_type == "training" {
+					var periods []models.Period
+					t := time.Now()
+					baseOrm.GetDB().Table("h_edu_periods").Where("course_id = ? and status != 'closed' and sign_up_end_at > ?", index, t.Format("2006-01-02 15:04:05")).Select("id").Find(&periods)
+
+					for _, val := range periods {
+						available_coupon.training[val.ID] = index //一期只会和一个课程关联
+					}
+				}
+			}
 		}
 	}
+}
+
+/**
+返回数据
+*/
+func getData() {
+
+}
+
+/**
+获取商品表面价格
+*/
+func getSurfacePrice() {
+
+}
+
+/**
+获取总的折扣价格
+*/
+func getDiscountPrice() {
+
+}
+
+/**
+获取当前用户可用的优惠券
+*/
+func getAvailableCoupon() {
+
+}
+
+/**
+获取当前订单下的课程信息
+*/
+func getCourses() {
+
 }

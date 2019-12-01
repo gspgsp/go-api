@@ -8,9 +8,11 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"github.com/iGoogle-ink/gopay"
 )
 
 func main() {
+	log.Info("GoPAy version is:", gopay.Version)
 	//初始化日志操作
 	(&(services.Log{utils.LOG_PATH, utils.LOG_NAME})).InitLog()
 

@@ -45,6 +45,12 @@
 			"revisionTime": "2019-05-10T10:23:35Z"
 		},
 		{
+			"checksumSHA1": "ZmJKRvky/zdZHvQ/VwGypMGMSY8=",
+			"path": "github.com/iGoogle-ink/gopay",
+			"revision": "c2576c416449dadfdba3f8f949caa134ebb52e3a",
+			"revisionTime": "2019-11-27T14:24:17Z"
+		},
+		{
 			"checksumSHA1": "RXSopFPGlhw7MD9uYxJ0oWN66JY=",
 			"path": "github.com/jinzhu/gorm",
 			"revision": "836fb2c19d84dac7b0272958dfb9af7cf0d0ade4",
@@ -89,6 +95,12 @@
 			"revisionTime": "2019-07-18T00:03:51Z"
 		},
 		{
+			"checksumSHA1": "PrY7zmY+8tfIV6lUUZFjdVnhEXI=",
+			"path": "github.com/parnurzeal/gorequest",
+			"revision": "b735e503d8bf955a72baf89723cdb50ab0bd668c",
+			"revisionTime": "2019-09-25T09:44:54Z"
+		},
+		{
 			"checksumSHA1": "CUU7ZZtxuc1mpbM8XKrSTNiy/yM=",
 			"origin": "github.com/lestrrat-go/file-rotatelogs/vendor/github.com/pkg/errors",
 			"path": "github.com/pkg/errors",
@@ -118,6 +130,12 @@
 			"path": "gopkg.in/yaml.v3",
 			"revision": "674ba3eaed223079f9377fbb0c98c0951bf6ec10",
 			"revisionTime": "2019-07-09T13:04:02Z"
+		},
+		{
+			"checksumSHA1": "BLhDpxA5/yZCH55g8MqaKD+3YmY=",
+			"path": "moul.io/http2curl",
+			"revision": "5cd742060b0e0de91f875277b77dd7d7e68b23ca",
+			"revisionTime": "2019-09-25T09:05:45Z"
 		}
 	],
 	"rootPath": "edu_api"

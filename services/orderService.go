@@ -4,6 +4,7 @@ import (
 	"edu_api/middlewares"
 	"edu_api/models"
 	"edu_api/utils"
+	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
 	"reflect"
@@ -37,6 +38,8 @@ var (
 	discount_price   float32         //总折扣价
 	course_price     coursePrice     //课程价格信息
 	available_coupon availableCoupon //可用的优惠券信息
+	db               *BaseOrm        //数据库操作对象
+	auth             string          //授权信息
 )
 
 /**
@@ -52,6 +55,10 @@ func Init() {
 	available_coupon.category = make(map[int]interface{})
 	available_coupon.courseType = make(map[int]interface{})
 	available_coupon.training = make(map[int]interface{})
+
+	//数据库初始化
+	db = new(BaseOrm)
+	db.InitDB()
 }
 
 /**
@@ -61,12 +68,14 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 
 	Init()
 
+	log.Info("the db is:", db.GetDB())
 	var courses []models.Course
 	var packages models.Package
 	var periods models.Period
 	var trainings models.Training
 	var ids []string
-	auth := r.Header.Get("Authorization")
+	auth = r.Header.Get("Authorization")
+	user = GetUserInfo(auth)
 	ids = strings.Split(commitOrder.Ids, ",")
 	order_type = commitOrder.Type
 
@@ -76,7 +85,7 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 			return 1, "未找到对应ID套餐信息"
 		}
 
-		if _, err := initBaseData(packages, auth, baseOrm); err != nil {
+		if _, err := initBaseData(packages, baseOrm); err != nil {
 			return 1, err.Error()
 		}
 	} else if commitOrder.Type == "course" {
@@ -85,7 +94,7 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 			return 1, "未找到对应ID课程信息"
 		}
 
-		if _, err := initBaseData(courses, auth, baseOrm); err != nil {
+		if _, err := initBaseData(courses, baseOrm); err != nil {
 			return 1, err.Error()
 		}
 	} else if commitOrder.Type == "training" {
@@ -101,7 +110,7 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 			return 1, "未找到对应营的信息"
 		}
 
-		if _, err := initBaseData(periods, auth, baseOrm); err != nil {
+		if _, err := initBaseData(periods, baseOrm); err != nil {
 			return 1, err.Error()
 		}
 	}
@@ -115,16 +124,14 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 /**
 初始化数据
 */
-func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error) {
+func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
+	dataValue := reflect.ValueOf(data)
 
-	_, err := checkOrderIsValid(data, user, baseOrm)
+	_, err := checkOrderIsValid(data, baseOrm)
 	if err != nil {
 		log.Info("数据验证错误:", err.Error())
 		return false, err
 	}
-
-	dataValue := reflect.ValueOf(data)
-	user = GetUserInfo(auth)
 
 	switch reflect.TypeOf(data).Kind() {
 	case reflect.Slice:
@@ -225,16 +232,16 @@ func initBaseData(data interface{}, auth string, baseOrm *BaseOrm) (bool, error)
 /**
 验证订单数据的有效性
 */
-func checkOrderIsValid(data interface{}, user models.User, baseOrm *BaseOrm) (bool, error) {
-	if checkCourseIsFreeOrVipFree(data, user, baseOrm) {
+func checkOrderIsValid(data interface{}, baseOrm *BaseOrm) (bool, error) {
+	if checkCourseIsFreeOrVipFree(data, baseOrm) {
 		return false, utils.ReturnErrors("该订单有免费课程，无法完成下单")
 	}
 
-	if checkUserHasOrder(data, user, baseOrm) {
+	if checkUserHasOrder(data, baseOrm) {
 		return false, utils.ReturnErrors("当前课程在您未支付的订单中已经存在，无法购买")
 	}
 
-	if checkUserHasCourse(data, user, baseOrm) {
+	if checkUserHasCourse(data, baseOrm) {
 		return false, utils.ReturnErrors("课程已兑换/购买")
 	}
 
@@ -244,7 +251,7 @@ func checkOrderIsValid(data interface{}, user models.User, baseOrm *BaseOrm) (bo
 /**
 检查订单是否包含免费课程以及会员免费学习的课程
 */
-func checkCourseIsFreeOrVipFree(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
 	switch val := data.(type) {
 	case models.Course:
 		if (val.Type == "free" || val.Price == 0) || (val.VipLevel == 1 && user.Level == "vip1") {
@@ -294,7 +301,7 @@ func checkCourseIsFreeOrVipFree(data interface{}, user models.User, baseOrm *Bas
 /**
 检查是否有未处理的订单，其实这个表结构设计有问题，就是没有设置order_items的状态，每次都要到父表查询状态
 */
-func checkUserHasOrder(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
 	switch val := data.(type) {
 	case models.Course:
 		var orderItems []models.OrderItemModel
@@ -354,7 +361,7 @@ func checkUserHasOrder(data interface{}, user models.User, baseOrm *BaseOrm) boo
 /**
 检查用户是否已经有指定的课程
 */
-func checkUserHasCourse(data interface{}, user models.User, baseOrm *BaseOrm) bool {
+func checkUserHasCourse(data interface{}, baseOrm *BaseOrm) bool {
 	var user_course models.UserCourse
 	switch val := data.(type) {
 	case models.Course:
@@ -466,28 +473,77 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 返回数据
 */
 func getData() {
-
+	getAvailableCoupon()
 }
 
 /**
 获取商品表面价格
 */
-func getSurfacePrice() {
-
+func getSurfacePrice() float32 {
+	return surface_price
 }
 
 /**
 获取总的折扣价格
 */
-func getDiscountPrice() {
-
+func getDiscountPrice() float32 {
+	return discount_price
 }
 
 /**
 获取当前用户可用的优惠券
 */
 func getAvailableCoupon() {
+	if order_type == "course" {
+		//
+		if len(available_coupon.course) == 0 {
+			return
+		}
 
+		//select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all' or (uc.suitable = 'category' and uc.suitable_value in (%s)) or (uc.suitable = 'course' and uc.suitable_value in (%s)) or (uc.suitable = 'course_type' and uc.suitable_value in (%s)))"
+		select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
+
+		keys := make([]int, 0, len(available_coupon.category))
+		for k := range available_coupon.category {
+			keys = append(keys, k)
+		}
+
+		keys2 := make([]int, 0, len(available_coupon.course))
+		for k := range available_coupon.course {
+			keys2 = append(keys2, k)
+		}
+
+		keys3 := make([]int, 0, len(available_coupon.courseType))
+		for k := range available_coupon.courseType {
+			keys3 = append(keys3, k)
+		}
+
+		st := strings.Replace(strings.Trim(fmt.Sprint(keys), "[]"), " ", ",", -1)
+		st2 := strings.Replace(strings.Trim(fmt.Sprint(keys2), "[]"), " ", ",", -1)
+		st3 := strings.Replace(strings.Trim(fmt.Sprint(keys3), "[]"), " ", ",", -1)
+
+		if len(st) > 0 {
+			select_sql += "or (uc.suitable = 'category' and uc.suitable_value in (%s))"
+		}
+
+		if len(st2) > 0 {
+			select_sql += "or (uc.suitable = 'course' and uc.suitable_value in (%s))"
+		}
+
+		if len(st3) > 0 {
+			select_sql += "or (uc.suitable = 'course_type' and uc.suitable_value in (%s))"
+		}
+
+		select_sql += ")"
+
+		sql_str := fmt.Sprintf(select_sql, user.Id, st, st2, st3)
+		rows, _ := db.GetDB().Exec(sql_str).Rows()
+
+		log.Info("the rows is:", rows)
+	} else if order_type == "package" {
+		//
+
+	}
 }
 
 /**

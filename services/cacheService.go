@@ -34,7 +34,7 @@ type redisYaml struct {
 //获取redis配置对象
 func getRedisConf() (redisConf RedisConf, err error) {
 	conf := RedisConf{}
-	cacheFile, err := ioutil.ReadFile("./src/edu_api/config/redis.yaml")
+	cacheFile, err := ioutil.ReadFile("D:/gopath/src/edu_api/config/redis.yaml")
 
 	if err != nil {
 		return conf, err

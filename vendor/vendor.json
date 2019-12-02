@@ -95,6 +95,13 @@
 			"revisionTime": "2019-07-18T00:03:51Z"
 		},
 		{
+			"checksumSHA1": "mymCWXEztnT0lf9RVJK8WwQx+y4=",
+			"origin": "github.com/iGoogle-ink/gopay/vendor/github.com/moul/http2curl",
+			"path": "github.com/moul/http2curl",
+			"revision": "c2576c416449dadfdba3f8f949caa134ebb52e3a",
+			"revisionTime": "2019-11-27T14:24:17Z"
+		},
+		{
 			"checksumSHA1": "PrY7zmY+8tfIV6lUUZFjdVnhEXI=",
 			"path": "github.com/parnurzeal/gorequest",
 			"revision": "b735e503d8bf955a72baf89723cdb50ab0bd668c",

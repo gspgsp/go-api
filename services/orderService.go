@@ -8,6 +8,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -501,7 +502,7 @@ func getAvailableCoupon() {
 		}
 
 		//select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all' or (uc.suitable = 'category' and uc.suitable_value in (%s)) or (uc.suitable = 'course' and uc.suitable_value in (%s)) or (uc.suitable = 'course_type' and uc.suitable_value in (%s)))"
-		select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
+		select_sql := "select uc.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
 
 		keys := make([]int, 0, len(available_coupon.category))
 		for k := range available_coupon.category {
@@ -534,12 +535,24 @@ func getAvailableCoupon() {
 			select_sql += "or (uc.suitable = 'course_type' and uc.suitable_value in (%s))"
 		}
 
-		select_sql += ")"
+		//当前最低价格
+		var differ = surface_price - discount_price
+		var min_amount = strconv.FormatFloat(float64(differ), 'f', 6, 64)
+		//至少为1块
+		var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 6, 64)
+		select_sql += ") and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + ")"
 
 		sql_str := fmt.Sprintf(select_sql, user.Id, st, st2, st3)
-		rows, _ := db.GetDB().Exec(sql_str).Rows()
 
-		log.Info("the rows is:", rows)
+		userCoupons := make([]models.UserCoupon, 1)
+
+		//gorm 原生sql 读:Raw 其它操作:Exec，这里有坑，select不能用Exec
+		if err := db.GetDB().Raw(sql_str).Find(&userCoupons).Error; err != nil {
+			log.Info("select err is:", err.Error())
+			return
+		}
+
+		log.Info("the userCoupons is:", userCoupons)
 	} else if order_type == "package" {
 		//
 

@@ -16,5 +16,4 @@ type UserCoupon struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 	UserId        int       `json:"user_id"`
 	CouponId      int       `json:"coupon_id"`
-	CouponInfo    Coupon    `json:"coupon_info,omitempty"`
 }

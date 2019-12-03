@@ -537,14 +537,14 @@ func getAvailableCoupon() {
 
 		//当前最低价格
 		var differ = surface_price - discount_price
-		var min_amount = strconv.FormatFloat(float64(differ), 'f', 6, 64)
+		var min_amount = strconv.FormatFloat(float64(differ), 'f', 2, 64)
 		//至少为1块
-		var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 6, 64)
+		var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 2, 64)
 		select_sql += ") and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + ")"
 
 		sql_str := fmt.Sprintf(select_sql, user.Id, st, st2, st3)
 
-		userCoupons := make([]models.UserCoupon, 1)
+		userCoupons := make([]models.UserCoupon, 0)
 
 		//gorm 原生sql 读:Raw 其它操作:Exec，这里有坑，select不能用Exec
 		if err := db.GetDB().Raw(sql_str).Find(&userCoupons).Error; err != nil {
@@ -552,6 +552,7 @@ func getAvailableCoupon() {
 			return
 		}
 
+		//后续处理
 		log.Info("the userCoupons is:", userCoupons)
 	} else if order_type == "package" {
 		//

@@ -35,14 +35,19 @@ type availableCoupon struct {
 }
 
 var (
-	order_type             string              //订单类型
-	surface_price          float32             //总标价
-	discount_price         float32             //总折扣价
-	course_price           coursePrice         //课程价格信息
-	available_coupon       availableCoupon     //可用的优惠券信息
-	db                     *BaseOrm            //数据库操作对象
-	auth                   string              //授权信息
-	available_coupon_infos []models.CouponInfo //处理后的可用优惠券信息
+	order_type             string                 //订单类型
+	surface_price          float32                //总标价
+	discount_price         float32                //总折扣价
+	course_price           coursePrice            //课程价格信息
+	available_coupon       availableCoupon        //可用的优惠券信息
+	db                     *BaseOrm               //数据库操作对象
+	auth                   string                 //授权信息
+	available_coupon_infos []models.CouponInfo    //处理后的可用优惠券信息
+	orderCourse            models.OrderCourse     //处理后的课程信息
+	package_id             int                    //订单套餐ID
+	course_ids             []int                  //订单下的课程ID
+	period_id              int                    //订单训练营期ID
+	order_data             map[string]interface{} //预订单返回数据
 )
 
 /**
@@ -64,6 +69,16 @@ func Init() {
 	db.InitDB()
 
 	available_coupon_infos = make([]models.CouponInfo, 0)
+	orderCourse = models.OrderCourse{}
+	order_data = make(map[string]interface{})
+
+	order_type = ""
+	surface_price = 0
+	discount_price = 0
+
+	package_id = 0
+	course_ids = make([]int, 0)
+	period_id = 0
 }
 
 /**
@@ -73,7 +88,6 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 
 	Init()
 
-	log.Info("the db is:", db.GetDB())
 	var courses []models.Course
 	var packages models.Package
 	var periods models.Period
@@ -89,6 +103,8 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 		if packages.Id == 0 {
 			return 1, "未找到对应ID套餐信息"
 		}
+
+		package_id = packages.Id
 
 		if _, err := initBaseData(packages, baseOrm); err != nil {
 			return 1, err.Error()
@@ -121,9 +137,11 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 	}
 
 	//获取返回数据
-	getData()
+	getAvailableCoupon()
+	getCourses()
+	getOrderData()
 
-	return 0, "ok"
+	return 0, order_data
 }
 
 /**
@@ -142,7 +160,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 	case reflect.Slice:
 		for i := 0; i < dataValue.Len(); i++ {
 			val := dataValue.Index(i).Interface().(models.Course)
-
+			course_ids = append(course_ids, val.Id)
 			//初始化价格信息
 			course_price.price[val.Id] = val.Price
 			course_price.discount[val.Id] = 0
@@ -178,7 +196,6 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 
 			var courses []models.Course
 			var course_id = 0
-			var course_ids []int
 			rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 			if err == nil {
 				for rows.Next() {
@@ -198,6 +215,8 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 			var course models.Course
 			val := dataValue.Interface().(models.Period)
 			baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
+			course_ids = append(course_ids, val.CourseId)
+			period_id = val.ID
 
 			//初始化价格信息
 			course_price.price[course.Id] = course.Price
@@ -228,9 +247,6 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 
 	//计算可用优惠券的课程
 	calculateAvailableCoupon(baseOrm)
-
-	log.Info("course is:", course_price)
-	log.Info("coupon is:", available_coupon.training)
 	return true, nil
 }
 
@@ -272,7 +288,6 @@ func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
 
 		var courses []models.Course
 		var course_id = 0
-		var course_ids []int
 		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 		if err == nil {
 			for rows.Next() {
@@ -323,7 +338,6 @@ func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
 		return false
 	case models.Package:
 		var course_id = 0
-		var course_ids []int
 		var orderItems []models.OrderItemModel
 		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 		if err == nil {
@@ -475,40 +489,36 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 }
 
 /**
-返回数据
+返回订单预处理数据
 */
-func getData() {
-	getAvailableCoupon()
-
-	log.Info("available coupon is:", available_coupon_infos)
-}
-
-/**
-获取商品表面价格
-*/
-func getSurfacePrice() float32 {
-	return surface_price
-}
-
-/**
-获取总的折扣价格
-*/
-func getDiscountPrice() float32 {
-	return discount_price
+func getOrderData() {
+	order_data["surface_price"] = surface_price
+	order_data["discount_price"] = discount_price
+	order_data["courses"] = orderCourse
+	order_data["available_coupon_infos"] = available_coupon_infos
 }
 
 /**
 获取当前用户可用的优惠券
 */
-func getAvailableCoupon() (couponInfo []models.CouponInfo) {
+func getAvailableCoupon() {
+	//当前最低价格
+	var differ = surface_price - discount_price
+	var min_amount = strconv.FormatFloat(float64(differ), 'f', 2, 64)
+	//至少为1块
+	var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 2, 64)
+	var select_sql string
+	var sql_str string
+
+	couponInfos := make([]models.CouponInfo, 0)
+
 	if order_type == "course" || order_type == "training" {
 		//
 		if len(available_coupon.course) == 0 {
 			return
 		}
 
-		//select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all' or (uc.suitable = 'category' and uc.suitable_value in (%s)) or (uc.suitable = 'course' and uc.suitable_value in (%s)) or (uc.suitable = 'course_type' and uc.suitable_value in (%s)))"
-		select_sql := "select uc.*, c.name as c_name, c.value as c_value, c.min_amount as c_min_amount, c.suitable as c_suitable, c.not_before as c_not_before, c.not_after as c_not_after, c.effective_day as c_effective_day from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
+		select_sql = "select uc.*, c.name as c_name, c.value as c_value, c.min_amount as c_min_amount, c.suitable as c_suitable, c.not_before as c_not_before, c.not_after as c_not_after, c.effective_day as c_effective_day from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
 
 		keys := make([]int, 0, len(available_coupon.category))
 		for k := range available_coupon.category {
@@ -541,48 +551,57 @@ func getAvailableCoupon() (couponInfo []models.CouponInfo) {
 			select_sql += "or (uc.suitable = 'course_type' and uc.suitable_value in (%s))"
 		}
 
-		//当前最低价格
-		var differ = surface_price - discount_price
-		var min_amount = strconv.FormatFloat(float64(differ), 'f', 2, 64)
-		//至少为1块
-		var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 2, 64)
 		select_sql += ") and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + " and c.not_before < now()) and (if (c.effective_day > 0, c.not_after > date_add(now(), interval c.effective_day day), c.not_after > now()))"
-
-		sql_str := fmt.Sprintf(select_sql, user.Id, st, st2, st3)
-
-		couponInfos := make([]models.CouponInfo, 0)
-
-		//gorm 原生sql 读:Raw 其它操作:Exec，这里有坑，select不能用Exec
-		if err := db.GetDB().Raw(sql_str).Find(&couponInfos).Error; err != nil {
-			log.Info("select err is:", err.Error())
-			return
-		}
-
-		//后续处理
-		log.Info("the userCoupons is:", couponInfos)
-		if len(couponInfos) > 0 {
-			var wg sync.WaitGroup
-			for i := 0; i < len(couponInfos); i++ {
-				wg.Add(1)
-				go checkUserCouponPriceIsValid(couponInfos[i], &wg)
-			}
-			wg.Wait()
-		}
+		sql_str = fmt.Sprintf(select_sql, user.Id, st, st2, st3)
 	} else if order_type == "package" {
 		//
-
+		select_sql = "select uc.*, c.name as c_name, c.value as c_value, c.min_amount as c_min_amount, c.suitable as c_suitable, c.not_before as c_not_before, c.not_after as c_not_after, c.effective_day as c_effective_day from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all' or (uc.suitable = 'package' and uc.suitable_value = " + strconv.Itoa(package_id) + ")) and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + " and c.not_before < now()) and (if (c.effective_day > 0, c.not_after > date_add(now(), interval c.effective_day day), c.not_after > now()))"
+		sql_str = fmt.Sprintf(select_sql, user.Id)
 	}
 
-	return available_coupon_infos
+	//gorm 原生sql 读:Raw 其它操作:Exec，这里有坑，select不能用Exec
+	if err := db.GetDB().Raw(sql_str).Find(&couponInfos).Error; err != nil {
+		log.Info("select err is:", err.Error())
+		return
+	}
+
+	//这里就不用了channel了
+	if len(couponInfos) > 0 {
+		var wg sync.WaitGroup
+		for i := 0; i < len(couponInfos); i++ {
+			wg.Add(1)
+			go checkUserCouponPriceIsValid(couponInfos[i], &wg)
+		}
+		wg.Wait()
+	}
 }
 
 /**
 获取当前订单下的课程信息
 */
 func getCourses() {
+	db.GetDB().Table("h_edu_courses").Select("id, type, cover_picture, title, price, vip_price, discount, discount_end_at, vip_level").Where("id in (?)", course_ids).Find(&orderCourse.Courses)
 
+	if order_type == "package" {
+		var packages models.Package
+		db.GetDB().Table("h_edu_packages").Where("id = " + strconv.Itoa(package_id)).First(&packages)
+		orderCourse.PackageInfo = &packages
+	} else if order_type == "training" {
+		var period models.Period
+		var training models.Training
+
+		//join可以，但是返回值是个麻烦
+		if err := db.GetDB().Table("h_edu_periods").Where("id = " + strconv.Itoa(period_id)).First(&period).Error; err != nil {
+			db.GetDB().Table("h_edu_trainings").Where("id = " + strconv.Itoa(period.TrainingId)).First(&training)
+			orderCourse.PeriodInfo = &period
+			orderCourse.TrainingInfo = &training
+		}
+	}
 }
 
+/**
+检查优惠券价格是否合理
+*/
 func checkUserCouponPriceIsValid(couponInfo models.CouponInfo, wg *sync.WaitGroup) {
 
 	defer func() {

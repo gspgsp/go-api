@@ -48,10 +48,10 @@ func (that *BaseOrm) InitDB() {
 	}
 
 	that.DB.SingularTable(true)
-	that.DB.DB().SetMaxIdleConns(10)
+	that.DB.DB().SetMaxIdleConns(50)
 	that.DB.DB().SetMaxOpenConns(100)
 	that.DB.DB().SetConnMaxLifetime(300 * time.Second)
-	that.DB.LogMode(true)
+	that.DB.LogMode(true) //决定在终端是否打印sql，开发环境下设置为true
 
 	baseDb = that.DB
 }

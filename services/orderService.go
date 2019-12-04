@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,13 +35,14 @@ type availableCoupon struct {
 }
 
 var (
-	order_type       string          //订单类型
-	surface_price    float32         //总标价
-	discount_price   float32         //总折扣价
-	course_price     coursePrice     //课程价格信息
-	available_coupon availableCoupon //可用的优惠券信息
-	db               *BaseOrm        //数据库操作对象
-	auth             string          //授权信息
+	order_type             string              //订单类型
+	surface_price          float32             //总标价
+	discount_price         float32             //总折扣价
+	course_price           coursePrice         //课程价格信息
+	available_coupon       availableCoupon     //可用的优惠券信息
+	db                     *BaseOrm            //数据库操作对象
+	auth                   string              //授权信息
+	available_coupon_infos []models.CouponInfo //处理后的可用优惠券信息
 )
 
 /**
@@ -60,6 +62,8 @@ func Init() {
 	//数据库初始化
 	db = new(BaseOrm)
 	db.InitDB()
+
+	available_coupon_infos = make([]models.CouponInfo, 0)
 }
 
 /**
@@ -475,6 +479,8 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 */
 func getData() {
 	getAvailableCoupon()
+
+	log.Info("available coupon is:", available_coupon_infos)
 }
 
 /**
@@ -494,15 +500,15 @@ func getDiscountPrice() float32 {
 /**
 获取当前用户可用的优惠券
 */
-func getAvailableCoupon() {
-	if order_type == "course" {
+func getAvailableCoupon() (couponInfo []models.CouponInfo) {
+	if order_type == "course" || order_type == "training" {
 		//
 		if len(available_coupon.course) == 0 {
 			return
 		}
 
 		//select_sql := "select uc.id as user_coupon_id, uc.status as user_coupon_status, c.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all' or (uc.suitable = 'category' and uc.suitable_value in (%s)) or (uc.suitable = 'course' and uc.suitable_value in (%s)) or (uc.suitable = 'course_type' and uc.suitable_value in (%s)))"
-		select_sql := "select uc.* from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
+		select_sql := "select uc.*, c.name as c_name, c.value as c_value, c.min_amount as c_min_amount, c.suitable as c_suitable, c.not_before as c_not_before, c.not_after as c_not_after, c.effective_day as c_effective_day from h_user_coupon as uc left join h_coupons as c on uc.coupon_id = c.id where uc.status = 0 and uc.user_id = %d and (uc.suitable = 'all'"
 
 		keys := make([]int, 0, len(available_coupon.category))
 		for k := range available_coupon.category {
@@ -540,24 +546,34 @@ func getAvailableCoupon() {
 		var min_amount = strconv.FormatFloat(float64(differ), 'f', 2, 64)
 		//至少为1块
 		var max_amount = strconv.FormatFloat(float64(differ-1), 'f', 2, 64)
-		select_sql += ") and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + ")"
+		select_sql += ") and (c.enabled = 1 and c.min_amount <=" + min_amount + " and c.value <= " + max_amount + " and c.not_before < now()) and (if (c.effective_day > 0, c.not_after > date_add(now(), interval c.effective_day day), c.not_after > now()))"
 
 		sql_str := fmt.Sprintf(select_sql, user.Id, st, st2, st3)
 
-		userCoupons := make([]models.UserCoupon, 0)
+		couponInfos := make([]models.CouponInfo, 0)
 
 		//gorm 原生sql 读:Raw 其它操作:Exec，这里有坑，select不能用Exec
-		if err := db.GetDB().Raw(sql_str).Find(&userCoupons).Error; err != nil {
+		if err := db.GetDB().Raw(sql_str).Find(&couponInfos).Error; err != nil {
 			log.Info("select err is:", err.Error())
 			return
 		}
 
 		//后续处理
-		log.Info("the userCoupons is:", userCoupons)
+		log.Info("the userCoupons is:", couponInfos)
+		if len(couponInfos) > 0 {
+			var wg sync.WaitGroup
+			for i := 0; i < len(couponInfos); i++ {
+				wg.Add(1)
+				go checkUserCouponPriceIsValid(couponInfos[i], &wg)
+			}
+			wg.Wait()
+		}
 	} else if order_type == "package" {
 		//
 
 	}
+
+	return available_coupon_infos
 }
 
 /**
@@ -565,4 +581,55 @@ func getAvailableCoupon() {
 */
 func getCourses() {
 
+}
+
+func checkUserCouponPriceIsValid(couponInfo models.CouponInfo, wg *sync.WaitGroup) {
+
+	defer func() {
+		wg.Done()
+	}()
+
+	var all_course_price float32 = 0
+
+	if couponInfo.CSuitable == "all" {
+		for index, _ := range available_coupon.course {
+			all_course_price += course_price.price[index].(float32)
+		}
+	} else if couponInfo.CSuitable == "category" {
+		for index, value := range available_coupon.category {
+			if index == couponInfo.SuitableValue {
+				//这里的value为slice类型
+				vals := value.([]int)
+				for _, val := range vals {
+					all_course_price += course_price.price[val].(float32)
+				}
+			}
+		}
+	} else if couponInfo.CSuitable == "course" {
+		all_course_price += course_price.price[couponInfo.SuitableValue].(float32)
+	} else if couponInfo.CSuitable == "course_type" {
+		for index, value := range available_coupon.courseType {
+			if index == couponInfo.SuitableValue {
+				//这里的value为slice类型
+				vals := value.([]int)
+				for _, val := range vals {
+					all_course_price += course_price.price[val].(float32)
+				}
+			}
+		}
+	} else if couponInfo.CSuitable == "training" {
+		for index, value := range available_coupon.training {
+			if index == couponInfo.SuitableValue {
+				//这里的value为slice类型
+				vals := value.([]int)
+				for _, val := range vals {
+					all_course_price += course_price.price[val].(float32)
+				}
+			}
+		}
+	}
+
+	if (all_course_price-0.01) >= couponInfo.CValue && all_course_price >= couponInfo.CMinAmount {
+		available_coupon_infos = append(available_coupon_infos, couponInfo)
+	}
 }

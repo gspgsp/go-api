@@ -48,6 +48,7 @@ var (
 	course_ids             []int                  //订单下的课程ID
 	period_id              int                    //订单训练营期ID
 	order_data             map[string]interface{} //预订单返回数据
+	mt                     sync.Mutex             //针对map的读写锁
 )
 
 /**
@@ -162,6 +163,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 			val := dataValue.Index(i).Interface().(models.Course)
 			course_ids = append(course_ids, val.Id)
 			//初始化价格信息
+			mt.Lock()
 			course_price.price[val.Id] = val.Price
 			course_price.discount[val.Id] = 0
 			course_price.coupon[val.Id] = 0
@@ -182,6 +184,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 					surface_price += val.Price
 				}
 			}
+			mt.Unlock()
 		}
 		break
 	case reflect.Struct:
@@ -205,9 +208,11 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 
 				baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
 				for _, value := range courses {
+					mt.Lock()
 					course_price.price[value.Id] = value.Price
 					course_price.discount[value.Id] = 0
 					course_price.coupon[value.Id] = 0
+					mt.Unlock()
 				}
 			}
 		} else if dataValue.Type().Name() == "Period" {
@@ -219,6 +224,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 			period_id = val.ID
 
 			//初始化价格信息
+			mt.Lock()
 			course_price.price[course.Id] = course.Price
 			course_price.discount[course.Id] = 0
 			course_price.coupon[course.Id] = 0
@@ -239,6 +245,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 					surface_price = course.Price
 				}
 			}
+			mt.Unlock()
 		}
 		break
 	default:
@@ -424,13 +431,16 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 	for index, value := range course_price.discount {
 		if value == 0 {
 			//按课程(这里展示了所有的课程)
+			mt.Lock()
 			available_coupon.course[index] = index
+			mt.Unlock()
 
 			//按类目
 			row := baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and type = 'boutique'", index).Select("category_id").Row()
 			var category_id int
 			err := row.Scan(&category_id)
 			if err == nil {
+				mt.Lock()
 				var c_ids []int
 				switch val := available_coupon.category[category_id].(type) {
 				case []int:
@@ -442,6 +452,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 					c_ids = append(c_ids, index)
 					available_coupon.category[category_id] = c_ids
 				}
+				mt.Unlock()
 			}
 
 			//按套餐(这个单独考虑，因为只有一个)
@@ -450,6 +461,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 			var course_type string
 			err2 := row2.Scan(&course_type)
 			if err2 == nil {
+				mt.Lock()
 				if course_type == "boutique" {
 					var c_ids []int
 					switch val := available_coupon.courseType[1].(type) {
@@ -483,6 +495,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 						available_coupon.training[val.ID] = index //一期只会和一个课程关联
 					}
 				}
+				mt.Unlock()
 			}
 		}
 	}
@@ -492,10 +505,12 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 返回订单预处理数据
 */
 func getOrderData() {
+	mt.Lock()
 	order_data["surface_price"] = surface_price
 	order_data["discount_price"] = discount_price
 	order_data["courses"] = orderCourse
 	order_data["available_coupon_infos"] = available_coupon_infos
+	mt.Unlock()
 }
 
 /**

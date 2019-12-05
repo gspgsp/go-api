@@ -4,6 +4,7 @@ import (
 	"errors"
 	valid "github.com/asaskevich/govalidator"
 	"strings"
+	"sync"
 )
 
 func init() {
@@ -82,7 +83,7 @@ func (addCart *AddCart) AddCartValidator() (bool, error) {
 type CommitOrder struct {
 	Source     string `json:"Source" valid:"-"`
 	Type       string `json:"type" valid:"-"`
-	Ids        string `json:"ids" valid:"legalId"`
+	Ids        string `json:"ids" valid:"-"`
 	PeriodId   int    `json:"period_id" valid:"-"`
 	TrainingId int    `json:"training_id" valid:"-"`
 }
@@ -97,6 +98,8 @@ func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {
 		return false, errors.New("训练营/期ID必须")
 	}
 
+	var mt sync.Mutex
+	mt.Lock()
 	//这里如果直接用 services.BaseOrm的话会报错误: import cycle not allowed，这里直接验证ids是否合理
 	valid.TagMap["legalId"] = valid.Validator(func(str string) bool {
 		ids := strings.Split(str, ",")
@@ -105,6 +108,7 @@ func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {
 		}
 		return true
 	})
+	mt.Unlock()
 
 	result, err := valid.ValidateStruct(commitOrder)
 

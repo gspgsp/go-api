@@ -63,17 +63,23 @@ func redisPool() *redis.Pool {
 
 			c, err := redis.Dial("tcp", conf.Redis.CacheHost+":"+conf.Redis.CachePort)
 			if err != nil {
-				c.Close()
+				if c != nil {
+					c.Close()
+				}
 				log.Printf("dial error:%v", err)
 			}
 
 			if _, err := c.Do("auth", conf.Redis.CachePassword); err != nil {
-				c.Close()
+				if c != nil {
+					c.Close()
+				}
 				log.Printf("auth error:%v", err)
 			}
 
 			if _, err := c.Do("select", conf.Redis.CacheDatabase); err != nil {
-				c.Close()
+				if c != nil {
+					c.Close()
+				}
 				log.Printf("select db error:%v", err)
 			}
 

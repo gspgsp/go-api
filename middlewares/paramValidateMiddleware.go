@@ -81,11 +81,13 @@ func (addCart *AddCart) AddCartValidator() (bool, error) {
 
 //提交订单验证
 type CommitOrder struct {
-	Source     string `json:"Source" valid:"-"`
-	Type       string `json:"type" valid:"-"`
-	Ids        string `json:"ids" valid:"-"`
-	PeriodId   int    `json:"period_id" valid:"-"`
-	TrainingId int    `json:"training_id" valid:"-"`
+	Source       string `json:"Source" valid:"-"`
+	Type         string `json:"type" valid:"-"`
+	Ids          string `json:"ids" valid:"legalId"`
+	PeriodId     int    `json:"period_id" valid:"-"`
+	TrainingId   int    `json:"training_id" valid:"-"`
+	UserCouponId int    `json:"user_coupon_id" valid:"-"`
+	ChannelUuid  string `json:"channel_uuid" valid:"-"`
 }
 
 func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {

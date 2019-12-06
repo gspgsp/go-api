@@ -36,6 +36,10 @@ type availableCoupon struct {
 
 var (
 	order_type             string                 //订单类型
+	user_coupon_id         int                    //优惠券id
+	user_mark              string                 //用户留言
+	source                 string                 //来源
+	channel_uuid           string                 //渠道ID
 	surface_price          float32                //总标价
 	discount_price         float32                //总折扣价
 	course_price           coursePrice            //课程价格信息
@@ -52,9 +56,9 @@ var (
 )
 
 /**
-map初始化，用于存储可用的优惠券信息，按照优惠券分类来区分
+初始化参数
 */
-func Init() {
+func initParam() {
 	course_price.price = make(map[int]interface{})
 	course_price.discount = make(map[int]interface{})
 	course_price.coupon = make(map[int]interface{})
@@ -80,15 +84,17 @@ func Init() {
 	package_id = 0
 	course_ids = make([]int, 0)
 	period_id = 0
+
+	user_coupon_id = 0
+	user_mark = ""
+	source = "pc"
+	channel_uuid = ""
 }
 
 /**
-提交订单
+初始化请求
 */
-func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
-
-	Init()
-
+func initRequest(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
 	var courses []models.Course
 	var packages models.Package
 	var periods models.Period
@@ -100,44 +106,62 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 	order_type = commitOrder.Type
 
 	if commitOrder.Type == "package" {
-		baseOrm.GetDB().Table("h_edu_packages").Where("id in (?) and status = 'published'", ids).Find(&packages)
+		db.GetDB().Table("h_edu_packages").Where("id in (?) and status = 'published'", ids).Find(&packages)
 		if packages.Id == 0 {
 			return 1, "未找到对应ID套餐信息"
 		}
 
 		package_id = packages.Id
 
-		if _, err := initBaseData(packages, baseOrm); err != nil {
+		if _, err := initBaseData(packages); err != nil {
 			return 1, err.Error()
 		}
 	} else if commitOrder.Type == "course" {
-		baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", ids).Find(&courses)
+		db.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", ids).Find(&courses)
 		if len(courses) == 0 {
 			return 1, "未找到对应ID课程信息"
 		}
 
-		if _, err := initBaseData(courses, baseOrm); err != nil {
+		if _, err := initBaseData(courses); err != nil {
 			return 1, err.Error()
 		}
 	} else if commitOrder.Type == "training" {
 		//训练营
-		baseOrm.GetDB().Table("h_edu_periods").Where("id = ? and status != 'closed'", commitOrder.PeriodId).Find(&periods)
+		db.GetDB().Table("h_edu_periods").Where("id = ? and status != 'closed'", commitOrder.PeriodId).Find(&periods)
 		if periods.ID == 0 {
 			return 1, "未找到对应期的信息"
 		}
 
-		baseOrm.GetDB().Table("h_edu_trainings").Where("id = ? and status = 'published'", periods.TrainingId).Find(&trainings)
+		db.GetDB().Table("h_edu_trainings").Where("id = ? and status = 'published'", periods.TrainingId).Find(&trainings)
 
 		if trainings.ID == 0 {
 			return 1, "未找到对应营的信息"
 		}
 
-		if _, err := initBaseData(periods, baseOrm); err != nil {
+		if _, err := initBaseData(periods); err != nil {
 			return 1, err.Error()
 		}
 	}
 
-	//获取返回数据
+	log.Info("user_coupon_id:", user_coupon_id)
+	log.Info("user_coupon_id:", user_mark)
+	log.Info("user_coupon_id:", source)
+	log.Info("user_coupon_id:", channel_uuid)
+
+	return 0, nil
+}
+
+/**
+提交订单
+*/
+func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
+
+	initParam()
+	code, res := initRequest(r, commitOrder)
+	if code == 1 {
+		return code, res
+	}
+
 	getAvailableCoupon()
 	getCourses()
 	getOrderData()
@@ -148,10 +172,10 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 /**
 初始化数据
 */
-func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
+func initBaseData(data interface{}) (bool, error) {
 	dataValue := reflect.ValueOf(data)
 
-	_, err := checkOrderIsValid(data, baseOrm)
+	_, err := checkOrderIsValid(data)
 	if err != nil {
 		log.Info("数据验证错误:", err.Error())
 		return false, err
@@ -199,14 +223,14 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 
 			var courses []models.Course
 			var course_id = 0
-			rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+			rows, err := db.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 			if err == nil {
 				for rows.Next() {
 					rows.Scan(&course_id)
 					course_ids = append(course_ids, course_id)
 				}
 
-				baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
+				db.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
 				for _, value := range courses {
 					mt.Lock()
 					course_price.price[value.Id] = value.Price
@@ -219,7 +243,7 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 			//训练营的课程，
 			var course models.Course
 			val := dataValue.Interface().(models.Period)
-			baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
+			db.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
 			course_ids = append(course_ids, val.CourseId)
 			period_id = val.ID
 
@@ -253,23 +277,23 @@ func initBaseData(data interface{}, baseOrm *BaseOrm) (bool, error) {
 	}
 
 	//计算可用优惠券的课程
-	calculateAvailableCoupon(baseOrm)
+	calculateAvailableCoupon()
 	return true, nil
 }
 
 /**
 验证订单数据的有效性
 */
-func checkOrderIsValid(data interface{}, baseOrm *BaseOrm) (bool, error) {
-	if checkCourseIsFreeOrVipFree(data, baseOrm) {
+func checkOrderIsValid(data interface{}) (bool, error) {
+	if checkCourseIsFreeOrVipFree(data) {
 		return false, utils.ReturnErrors("该订单有免费课程，无法完成下单")
 	}
 
-	if checkUserHasOrder(data, baseOrm) {
+	if checkUserHasOrder(data) {
 		return false, utils.ReturnErrors("当前课程在您未支付的订单中已经存在，无法购买")
 	}
 
-	if checkUserHasCourse(data, baseOrm) {
+	if checkUserHasCourse(data) {
 		return false, utils.ReturnErrors("课程已兑换/购买")
 	}
 
@@ -279,7 +303,7 @@ func checkOrderIsValid(data interface{}, baseOrm *BaseOrm) (bool, error) {
 /**
 检查订单是否包含免费课程以及会员免费学习的课程
 */
-func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
+func checkCourseIsFreeOrVipFree(data interface{}) bool {
 	switch val := data.(type) {
 	case models.Course:
 		if (val.Type == "free" || val.Price == 0) || (val.VipLevel == 1 && user.Level == "vip1") {
@@ -295,14 +319,14 @@ func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
 
 		var courses []models.Course
 		var course_id = 0
-		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+		rows, err := db.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 		if err == nil {
 			for rows.Next() {
 				rows.Scan(&course_id)
 				course_ids = append(course_ids, course_id)
 			}
 
-			baseOrm.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
+			db.GetDB().Table("h_edu_courses").Where("id in (?) and status = 'published'", course_ids).Find(&courses)
 
 			if len(courses) > 0 {
 				for _, value := range courses {
@@ -314,7 +338,7 @@ func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
 		}
 	case models.Period:
 		var course models.Course
-		baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).Find(&course)
+		db.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).Find(&course)
 		if course.Type == "free" || course.Price == 0 || (course.VipLevel == 1 && user.Level == "vip1") {
 			return true
 		}
@@ -328,15 +352,15 @@ func checkCourseIsFreeOrVipFree(data interface{}, baseOrm *BaseOrm) bool {
 /**
 检查是否有未处理的订单，其实这个表结构设计有问题，就是没有设置order_items的状态，每次都要到父表查询状态
 */
-func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
+func checkUserHasOrder(data interface{}) bool {
 	switch val := data.(type) {
 	case models.Course:
 		var orderItems []models.OrderItemModel
-		baseOrm.GetDB().Table("h_order_items").Where("course_id = ? and user_id = ? ", val.Id, user.Id).Find(&orderItems)
+		db.GetDB().Table("h_order_items").Where("course_id = ? and user_id = ? ", val.Id, user.Id).Find(&orderItems)
 		if len(orderItems) > 0 {
 			var order models.OrderModel
 			for _, value := range orderItems {
-				baseOrm.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
+				db.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
 				if order.ID > 0 {
 					return true
 				}
@@ -346,19 +370,19 @@ func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
 	case models.Package:
 		var course_id = 0
 		var orderItems []models.OrderItemModel
-		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+		rows, err := db.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 		if err == nil {
 			for rows.Next() {
 				rows.Scan(&course_id)
 				course_ids = append(course_ids, course_id)
 			}
 
-			baseOrm.GetDB().Table("h_order_items").Where("course_id in (?) and user_id = ? ", course_ids, user.Id).Find(&orderItems)
+			db.GetDB().Table("h_order_items").Where("course_id in (?) and user_id = ? ", course_ids, user.Id).Find(&orderItems)
 
 			if len(orderItems) > 0 {
 				var order models.OrderModel
 				for _, value := range orderItems {
-					baseOrm.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
+					db.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
 					if order.ID > 0 {
 						return true
 					}
@@ -368,11 +392,11 @@ func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
 		return false
 	case models.Period:
 		var orderItems []models.OrderItemModel
-		baseOrm.GetDB().Table("h_order_items").Where("course_id = ? and user_id = ?", val.CourseId, user.Id).Find(&orderItems)
+		db.GetDB().Table("h_order_items").Where("course_id = ? and user_id = ?", val.CourseId, user.Id).Find(&orderItems)
 		if len(orderItems) > 0 {
 			var order models.OrderModel
 			for _, value := range orderItems {
-				baseOrm.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
+				db.GetDB().Table("h_orders").Where("id = ? and user_id = ? and status = 0 and payment_status = 0", value.OrderId, user.Id).Find(&order)
 				if order.ID > 0 {
 					return true
 				}
@@ -387,22 +411,22 @@ func checkUserHasOrder(data interface{}, baseOrm *BaseOrm) bool {
 /**
 检查用户是否已经有指定的课程
 */
-func checkUserHasCourse(data interface{}, baseOrm *BaseOrm) bool {
+func checkUserHasCourse(data interface{}) bool {
 	var user_course models.UserCourse
 	switch val := data.(type) {
 	case models.Course:
-		baseOrm.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", val.Id, user.Id).First(&user_course)
+		db.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", val.Id, user.Id).First(&user_course)
 		if user_course.Id > 0 {
 			return true
 		}
 		return false
 	case models.Package:
-		rows, err := baseOrm.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
+		rows, err := db.GetDB().Table("h_edu_package_course").Where("package_id = ?", val.Id).Select("course_id").Rows()
 		if err == nil {
 			var course_id = 0
 			for rows.Next() {
 				rows.Scan(&course_id)
-				baseOrm.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", course_id, user.Id).First(&user_course)
+				db.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", course_id, user.Id).First(&user_course)
 				if user_course.Id > 0 {
 					return true
 				}
@@ -410,7 +434,7 @@ func checkUserHasCourse(data interface{}, baseOrm *BaseOrm) bool {
 		}
 		return false
 	case models.Period:
-		baseOrm.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", val.CourseId, user.Id).First(&user_course)
+		db.GetDB().Table("h_user_course").Where("course_id = ? and user_id = ?", val.CourseId, user.Id).First(&user_course)
 		if user_course.Id > 0 {
 			return true
 		}
@@ -423,7 +447,7 @@ func checkUserHasCourse(data interface{}, baseOrm *BaseOrm) bool {
 /**
 计算价格为0的课程，计算可用优惠券的课程
 */
-func calculateAvailableCoupon(baseOrm *BaseOrm) {
+func calculateAvailableCoupon() {
 	if order_type == "package" {
 		return
 	}
@@ -436,7 +460,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 			mt.Unlock()
 
 			//按类目
-			row := baseOrm.GetDB().Table("h_edu_courses").Where("id = ? and type = 'boutique'", index).Select("category_id").Row()
+			row := db.GetDB().Table("h_edu_courses").Where("id = ? and type = 'boutique'", index).Select("category_id").Row()
 			var category_id int
 			err := row.Scan(&category_id)
 			if err == nil {
@@ -457,7 +481,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 
 			//按套餐(这个单独考虑，因为只有一个)
 			//按课程类型(1为精品课，2为体系课)、按训练营
-			row2 := baseOrm.GetDB().Table("h_edu_courses").Where("id = ?", index).Select("type").Row()
+			row2 := db.GetDB().Table("h_edu_courses").Where("id = ?", index).Select("type").Row()
 			var course_type string
 			err2 := row2.Scan(&course_type)
 			if err2 == nil {
@@ -489,7 +513,7 @@ func calculateAvailableCoupon(baseOrm *BaseOrm) {
 				} else if course_type == "training" {
 					var periods []models.Period
 					t := time.Now()
-					baseOrm.GetDB().Table("h_edu_periods").Where("course_id = ? and status != 'closed' and sign_up_end_at > ?", index, t.Format("2006-01-02 15:04:05")).Select("id").Find(&periods)
+					db.GetDB().Table("h_edu_periods").Where("course_id = ? and status != 'closed' and sign_up_end_at > ?", index, t.Format("2006-01-02 15:04:05")).Select("id").Find(&periods)
 
 					for _, val := range periods {
 						available_coupon.training[val.ID] = index //一期只会和一个课程关联

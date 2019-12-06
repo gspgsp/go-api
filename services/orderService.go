@@ -45,6 +45,7 @@ var (
 	discount_price         float32                //总折扣价
 	course_price           coursePrice            //课程价格信息
 	available_coupon       availableCoupon        //可用的优惠券信息
+	coupon_price           float32                //总优惠券价格
 	db                     *BaseOrm               //数据库操作对象
 	auth                   string                 //授权信息
 	available_coupon_infos []models.CouponInfo    //处理后的可用优惠券信息
@@ -181,6 +182,9 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 
 	if commitOrder.UserCouponId > 0 {
 		user_coupon_id = commitOrder.UserCouponId
+		if _, err := checkOrderCouponIsValid(); err != nil {
+			return 1, err
+		}
 	}
 
 	user_mark = commitOrder.UserMark
@@ -188,10 +192,6 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 	if len(commitOrder.ChannelUuid) > 0 {
 		row := db.GetDB().Table("h_market_channels").Where("uuid = ?", commitOrder.ChannelUuid).Select("id").Row()
 		row.Scan(&channel_uuid)
-	}
-
-	if _, err := checkOrderCouponIsValid(); err != nil {
-		return 1, err
 	}
 
 	return 0, nil
@@ -726,7 +726,7 @@ func checkUserCouponPriceIsValid(couponInfo models.CouponInfo, wg *sync.WaitGrou
 func checkOrderCouponIsValid() (bool, error) {
 	//当没有优惠券的时候，也是合法的
 	if user_coupon_id == 0 {
-		return true, nil
+		return false, errors.New("优惠券不存在")
 	}
 
 	if order_type == "package" && discount_price > 0 {
@@ -796,5 +796,28 @@ func checkOrderCouponIsValid() (bool, error) {
 将优惠券金额分配到当前订单下的课程里面
 */
 func initOrderCouponPrice() {
+	if order_type == "package" || user_coupon_id == 0 {
+		return
+	}
 
+	//最终选择的优惠券，只能有一张
+	var user_coupon models.CouponInfo
+	if len(available_coupon_infos) > 0 {
+		user_coupon = available_coupon_infos[0]
+	}
+
+	if user_coupon.ID == 0 {
+		return
+	}
+
+	coupon_price = user_coupon.CValue
+
+	coupon_course_item := make(map[int]float32)
+	can_access_course_ids := make([]int, 0)
+	if user_coupon.Suitable == "all" {
+
+	}
+
+	log.Info("coupon_course_item is:", coupon_course_item)
+	log.Info("can_access_course_ids is:", can_access_course_ids)
 }

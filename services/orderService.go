@@ -4,6 +4,7 @@ import (
 	"edu_api/middlewares"
 	"edu_api/models"
 	"edu_api/utils"
+	"errors"
 	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
@@ -39,7 +40,7 @@ var (
 	user_coupon_id         int                    //优惠券id
 	user_mark              string                 //用户留言
 	source                 string                 //来源
-	channel_uuid           string                 //渠道ID
+	channel_uuid           int                    //渠道ID，传过来的是字符，但是自己还要取一次到id
 	surface_price          float32                //总标价
 	discount_price         float32                //总折扣价
 	course_price           coursePrice            //课程价格信息
@@ -88,7 +89,7 @@ func initParam() {
 	user_coupon_id = 0
 	user_mark = ""
 	source = "pc"
-	channel_uuid = ""
+	channel_uuid = 0
 }
 
 /**
@@ -155,7 +156,6 @@ func initRequest(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, in
 提交订单
 */
 func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
-
 	initParam()
 	code, res := initRequest(r, commitOrder)
 	if code == 1 {
@@ -167,6 +167,34 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 	getOrderData()
 
 	return 0, order_data
+}
+
+/**
+创建订单
+*/
+func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
+	initParam()
+	code, res := initRequest(r, commitOrder)
+	if code == 1 {
+		return code, res
+	}
+
+	if commitOrder.UserCouponId > 0 {
+		user_coupon_id = commitOrder.UserCouponId
+	}
+
+	user_mark = commitOrder.UserMark
+	source = commitOrder.Source
+	if len(commitOrder.ChannelUuid) > 0 {
+		row := db.GetDB().Table("h_market_channels").Where("uuid = ?", commitOrder.ChannelUuid).Select("id").Row()
+		row.Scan(&channel_uuid)
+	}
+
+	if _, err := checkOrderCouponIsValid(); err != nil {
+		return 1, err
+	}
+
+	return 0, nil
 }
 
 /**
@@ -690,4 +718,83 @@ func checkUserCouponPriceIsValid(couponInfo models.CouponInfo, wg *sync.WaitGrou
 	if (all_course_price-0.01) >= couponInfo.CValue && all_course_price >= couponInfo.CMinAmount {
 		available_coupon_infos = append(available_coupon_infos, couponInfo)
 	}
+}
+
+/**
+检查当前订单的优惠券是否有效
+*/
+func checkOrderCouponIsValid() (bool, error) {
+	//当没有优惠券的时候，也是合法的
+	if user_coupon_id == 0 {
+		return true, nil
+	}
+
+	if order_type == "package" && discount_price > 0 {
+		return false, errors.New("优惠券不合法")
+	}
+
+	if order_type == "course" && len(available_coupon.course) == 0 {
+		return false, errors.New("优惠券不合法")
+	}
+
+	//
+	couponInfo := models.CouponInfo{}
+	if err := db.GetDB().
+		Table("h_user_coupon").
+		Joins("left join h_coupons on h_user_coupon.coupon_id = h_coupons.id").
+		Select("h_user_coupon.*, h_coupons.name as c_name, h_coupons.value as c_value, h_coupons.min_amount as c_min_amount, h_coupons.suitable as c_suitable, h_coupons.not_before as c_not_before, h_coupons.not_after as c_not_after, h_coupons.effective_day as c_effective_day").
+		Where("h_user_coupon.user_id = ? and h_user_coupon.coupon_id = ?", user.Id, user_coupon_id).
+		First(&couponInfo).Error; err != nil {
+		return false, errors.New("未找到用户相关优惠券信息")
+	}
+
+	if couponInfo.Status == 1 {
+		return false, errors.New("优惠券已使用")
+	}
+
+	if couponInfo.Status == 2 {
+		return false, errors.New("优惠券已过期")
+	}
+
+	if couponInfo.CEnabled == 0 || couponInfo.CEnabled == -1 {
+		return false, errors.New("优惠券已关闭")
+	}
+
+	if couponInfo.CNotBefore.Unix() > time.Now().Unix() {
+		return false, errors.New("优惠券还未生效")
+	}
+
+	if couponInfo.CEffectiveDay > 0 {
+		hh := strconv.Itoa(couponInfo.CEffectiveDay*24) + "h"
+		dd, _ := time.ParseDuration(hh)
+		if couponInfo.CreatedAt.Add(dd).After(time.Now()) {
+			return false, errors.New("优惠券已过期")
+		}
+	} else {
+		if couponInfo.CNotAfter.Unix() < time.Now().Unix() {
+			return false, errors.New("优惠券已过期")
+		}
+	}
+
+	if couponInfo.CMinAmount > (surface_price-discount_price) || couponInfo.CValue > (surface_price-discount_price-1) {
+		return false, errors.New("优惠券不合法")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go checkUserCouponPriceIsValid(couponInfo, &wg)
+	wg.Wait()
+
+	if len(available_coupon_infos) == 0 {
+		return false, errors.New("优惠券不合法")
+	}
+
+	return true, nil
+}
+
+/**
+将优惠券金额分配到当前订单下的课程里面
+*/
+func initOrderCouponPrice() {
+
 }

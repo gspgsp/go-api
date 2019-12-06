@@ -46,6 +46,7 @@ func InitRoute() (rest.App, error) {
 		rest.Get("/cart", new(cart.CartController).GetCartList),                       //购物车列表
 		rest.Delete("/cart/:id", new(cart.CartController).DelCart),                    //删除购物车
 		rest.Post("/order/submit", new(order.OrderController).SubmitOrder),            //提交订单
+		rest.Post("/order/create", new(order.OrderController).CreateOrder),            //创建订单
 	)
 
 	if err != nil {

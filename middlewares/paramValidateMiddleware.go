@@ -88,6 +88,7 @@ type CommitOrder struct {
 	TrainingId   int    `json:"training_id" valid:"-"`
 	UserCouponId int    `json:"user_coupon_id" valid:"-"`
 	ChannelUuid  string `json:"channel_uuid" valid:"-"`
+	UserMark     string `json:"user_mark" valid:"-"`
 }
 
 func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {

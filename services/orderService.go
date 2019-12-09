@@ -43,6 +43,7 @@ var (
 	channel_uuid           int                    //渠道ID，传过来的是字符，但是自己还要取一次到id
 	surface_price          float32                //总标价
 	discount_price         float32                //总折扣价
+	payment_price          float32                //支付价格
 	course_price           coursePrice            //课程价格信息
 	available_coupon       availableCoupon        //可用的优惠券信息
 	coupon_price           float32                //总优惠券价格
@@ -82,6 +83,7 @@ func initParam() {
 	order_type = ""
 	surface_price = 0
 	discount_price = 0
+	payment_price = 0
 
 	package_id = 0
 	course_ids = make([]int, 0)
@@ -187,6 +189,8 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 		}
 	}
 
+	log.Info("commitOrder.UserCouponId:", commitOrder.UserCouponId)
+
 	user_mark = commitOrder.UserMark
 	source = commitOrder.Source
 	if len(commitOrder.ChannelUuid) > 0 {
@@ -194,7 +198,17 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 		row.Scan(&channel_uuid)
 	}
 
-	return 0, nil
+	initOrderCouponPrice()
+
+	if _, err := initOrderPaymentPrice(); err != nil {
+		return 1, err
+	}
+
+	if _, err := createOrder(); err != nil {
+		return 1, err
+	}
+
+	return 0, "创建成功"
 }
 
 /**
@@ -742,7 +756,7 @@ func checkOrderCouponIsValid() (bool, error) {
 	if err := db.GetDB().
 		Table("h_user_coupon").
 		Joins("left join h_coupons on h_user_coupon.coupon_id = h_coupons.id").
-		Select("h_user_coupon.*, h_coupons.name as c_name, h_coupons.value as c_value, h_coupons.min_amount as c_min_amount, h_coupons.suitable as c_suitable, h_coupons.not_before as c_not_before, h_coupons.not_after as c_not_after, h_coupons.effective_day as c_effective_day").
+		Select("h_user_coupon.*, h_coupons.name as c_name, h_coupons.value as c_value, h_coupons.min_amount as c_min_amount, h_coupons.suitable as c_suitable, h_coupons.not_before as c_not_before, h_coupons.not_after as c_not_after, h_coupons.effective_day as c_effective_day, h_coupons.enabled as c_enabled").
 		Where("h_user_coupon.user_id = ? and h_user_coupon.coupon_id = ?", user.Id, user_coupon_id).
 		First(&couponInfo).Error; err != nil {
 		return false, errors.New("未找到用户相关优惠券信息")
@@ -767,7 +781,7 @@ func checkOrderCouponIsValid() (bool, error) {
 	if couponInfo.CEffectiveDay > 0 {
 		hh := strconv.Itoa(couponInfo.CEffectiveDay*24) + "h"
 		dd, _ := time.ParseDuration(hh)
-		if couponInfo.CreatedAt.Add(dd).After(time.Now()) {
+		if couponInfo.CreatedAt.Add(dd).Before(time.Now()) {
 			return false, errors.New("优惠券已过期")
 		}
 	} else {
@@ -805,7 +819,7 @@ func initOrderCouponPrice() {
 	if len(available_coupon_infos) > 0 {
 		user_coupon = available_coupon_infos[0]
 	}
-
+	log.Info("user_coupon is:", user_coupon)
 	if user_coupon.ID == 0 {
 		return
 	}
@@ -815,9 +829,139 @@ func initOrderCouponPrice() {
 	coupon_course_item := make(map[int]float32)
 	can_access_course_ids := make([]int, 0)
 	if user_coupon.Suitable == "all" {
-
+		for k := range available_coupon.course {
+			can_access_course_ids = append(can_access_course_ids, k)
+		}
+	} else if user_coupon.Suitable == "category" {
+		switch val := available_coupon.category[user_coupon.SuitableValue].(type) {
+		case []int:
+			can_access_course_ids = val
+			break
+		}
+	} else if user_coupon.Suitable == "course" {
+		can_access_course_ids = append(can_access_course_ids, user_coupon.SuitableValue)
+	} else if user_coupon.Suitable == "course_type" {
+		switch val := available_coupon.courseType[user_coupon.SuitableValue].(type) {
+		case []int:
+			can_access_course_ids = val
+			break
+		}
+	} else if user_coupon.Suitable == "training" {
+		switch val := available_coupon.training[user_coupon.SuitableValue].(type) {
+		case []int:
+			can_access_course_ids = val
+			break
+		}
 	}
 
-	log.Info("coupon_course_item is:", coupon_course_item)
-	log.Info("can_access_course_ids is:", can_access_course_ids)
+	if len(can_access_course_ids) > 0 {
+		for _, value := range can_access_course_ids {
+			mt.Lock()
+			coupon_course_item[value] = course_price.price[value].(float32)
+			mt.Unlock()
+		}
+	}
+
+	if len(coupon_course_item) > 0 {
+		coupon_price_item := calculateAverageCouponPriceForCourse(coupon_price, coupon_course_item)
+		if len(coupon_price_item) > 0 {
+			for index, value := range coupon_price_item {
+				course_price.coupon[index] = value
+			}
+		}
+	}
+}
+
+/**
+将优惠券平均分配，map的限制太多了，最好能够用slice，最主要原因就是map的无序性
+*/
+func calculateAverageCouponPriceForCourse(coupon float32, coupon_course_item map[int]float32) map[int]float32 {
+	var price float32
+	var percent float32
+	var all_percent_price float32
+	var last_index int
+	var i int
+	mt.Lock()
+	coupon_price_item := make(map[int]float32, 0)
+	for index, value := range coupon_course_item {
+		price += value
+		i++
+		if i == len(coupon_course_item) {
+			last_index = index
+		}
+	}
+
+	for index, value := range coupon_course_item {
+		percent = value / price
+		coupon_price_item[index] = coupon * percent
+
+		if (value - coupon_price_item[index]) <= 0 {
+			coupon_price_item[index] = 0.01
+		}
+	}
+
+	for _, value := range coupon_price_item {
+		all_percent_price += value
+	}
+
+	if (coupon - all_percent_price) > 0 {
+		coupon_price_item[last_index] += (coupon - all_percent_price)
+	}
+	mt.Unlock()
+
+	return coupon_price_item
+}
+
+/**
+初始化订单信息
+*/
+func initOrderPaymentPrice() (bool, error) {
+	payment_price = surface_price - discount_price - coupon_price
+	if payment_price <= 0 {
+		return false, errors.New("无效订单")
+	}
+
+	var courses []models.Course
+	db.GetDB().Table("h_edu_courses").Where("id in (?)", course_ids).Select("id, price").Find(&courses)
+	if order_type == "package" {
+		course_item := make(map[int]float32)
+		for index, value := range courses {
+			course_item[index] = value.Price
+		}
+
+		price_item := calculateAverageCouponPriceForCourse(payment_price, course_item)
+		for index, value := range price_item {
+			course_price.payment[index] = value
+		}
+	} else if order_type == "course" || order_type == "training" {
+		for _, value := range courses {
+			course_price.payment[value.Id] = value.Price - value.Discount - course_price.coupon[value.Id].(float32)
+		}
+	}
+
+	return true, nil
+}
+
+/**
+创建订单信息
+*/
+func createOrder() (bool, error) {
+	tx := db.GetDB().Begin()
+	dd, _ := time.ParseDuration("48h")
+	var order = models.OrderModel{No: utils.GenerateOrderNo(), Source: source, Amount: surface_price, UserId: user.Id, PackageId: package_id, UserRemark: user_mark, CouponAmount: coupon_price, PaymentAmount: payment_price, UserCouponId: user_coupon_id, DiscountAmount: discount_price, PaymentAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), PaymentExpiredAt: time.Now().Add(dd).Format(utils.TIME_DEFAULT_FORMAT), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT)}
+	err1 := tx.Table("h_orders").Omit("refund_request_at", "refund_status", "refund_at", "extra", "invoice_id", "package_id").Create(&order).Error
+
+	log.Info("order id:", order.ID)
+
+	//var buffer bytes.Buffer
+	//sql := "insert into h_order_items (`type`, price, payment_price, created_at, updated_at, order_id, course_id, user_id) values"
+
+	if err1 != nil {
+		tx.Rollback()
+		return false, err1
+	}
+
+	tx.Commit()
+
+	return true, nil
 }

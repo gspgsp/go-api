@@ -19,7 +19,7 @@ type OrderModel struct {
 	Source           string  `json:"source"`
 	Status           int     `json:"status"`
 	RefundReason     string  `json:"refund_reason"`
-	RefundRequestAt  string  `json:"refund_request_at"`
+	RefundRequestAt  string  `json:"refund_request_at,omitempty"`
 	RefundStatus     string  `json:"refund_status"`
 	RefundNo         string  `json:"refund_no"`
 	RefundAt         string  `json:"refund_at"`
@@ -27,8 +27,9 @@ type OrderModel struct {
 	UserRemark       string  `json:"user_remark"`
 	AdminRemark      string  `json:"admin_remark"`
 	CreatedAt        string  `json:"created_at"`
-	UserId           int64   `json:"user_id"`
-	UserCouponId     int64   `json:"user_coupon_id"`
-	InvoiceId        int64   `json:"invoice_id"`
-	PackageId        int64   `json:"package_id"`
+	UpdatedAt        string  `json:"updated_at"`
+	UserId           int     `json:"user_id"`
+	UserCouponId     int     `json:"user_coupon_id"`
+	InvoiceId        int     `json:"invoice_id"`
+	PackageId        int     `json:"package_id"`
 }

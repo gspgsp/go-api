@@ -61,6 +61,8 @@ func (order *OrderController) CreateOrder(w rest.ResponseWriter, r *rest.Request
 			switch v := message.(type) {
 			case string:
 				order.controller.Err = errors.New(v)
+			case error:
+				order.controller.Err = v
 			}
 		}
 		order.controller.JsonReturn(w, "result", message)

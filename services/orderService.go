@@ -55,6 +55,7 @@ var (
 	package_id             int                    //订单套餐ID
 	course_ids             []int                  //订单下的课程ID
 	period_id              int                    //订单训练营期ID
+	training_id            int                    //训练营id
 	order_data             map[string]interface{} //预订单返回数据
 	mt                     sync.Mutex             //针对map的读写锁
 )
@@ -89,6 +90,7 @@ func initParam() {
 	package_id = 0
 	course_ids = make([]int, 0)
 	period_id = 0
+	training_id = 0
 
 	user_coupon_id = 0
 	user_mark = ""
@@ -148,11 +150,6 @@ func initRequest(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, in
 		}
 	}
 
-	log.Info("user_coupon_id:", user_coupon_id)
-	log.Info("user_coupon_id:", user_mark)
-	log.Info("user_coupon_id:", source)
-	log.Info("user_coupon_id:", channel_uuid)
-
 	return 0, nil
 }
 
@@ -190,13 +187,16 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 		}
 	}
 
-	log.Info("commitOrder.UserCouponId:", commitOrder.UserCouponId)
-
 	user_mark = commitOrder.UserMark
 	source = commitOrder.Source
 	if len(commitOrder.ChannelUuid) > 0 {
 		row := db.GetDB().Table("h_market_channels").Where("uuid = ?", commitOrder.ChannelUuid).Select("id").Row()
 		row.Scan(&channel_uuid)
+	}
+
+	if commitOrder.Type == "training" {
+		period_id = commitOrder.PeriodId
+		training_id = commitOrder.TrainingId
 	}
 
 	initOrderCouponPrice()
@@ -205,11 +205,12 @@ func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.Co
 		return 1, err
 	}
 
-	if _, err := createOrder(); err != nil {
+	b, err := createOrder()
+	if b == false {
 		return 1, err
 	}
 
-	return 0, "创建成功"
+	return 0, err
 }
 
 /**
@@ -288,7 +289,6 @@ func initBaseData(data interface{}) (bool, error) {
 			val := dataValue.Interface().(models.Period)
 			db.GetDB().Table("h_edu_courses").Where("id = ? and status = 'published'", val.CourseId).First(&course)
 			course_ids = append(course_ids, val.CourseId)
-			period_id = val.ID
 
 			//初始化价格信息
 			mt.Lock()
@@ -931,9 +931,13 @@ func initOrderPaymentPrice() (bool, error) {
 		}
 
 		price_item := calculateAverageCouponPriceForCourse(payment_price, course_item)
-		for index, value := range price_item {
-			course_price.payment[index] = value
+
+		for _, v := range course_ids {
+			mt.Lock()
+			course_price.payment[v] = price_item[v]
+			mt.Unlock()
 		}
+
 	} else if order_type == "course" || order_type == "training" {
 		for _, value := range courses {
 			course_price.payment[value.Id] = value.Price - value.Discount - course_price.coupon[value.Id].(float32)
@@ -946,13 +950,30 @@ func initOrderPaymentPrice() (bool, error) {
 /**
 创建订单信息
 */
-func createOrder() (bool, error) {
+func createOrder() (bool, interface{}) {
 	tx := db.GetDB().Begin()
 	dd, _ := time.ParseDuration("48h")
-	var order = models.OrderModel{No: utils.GenerateOrderNo(), Source: source, Amount: surface_price, UserId: user.Id, PackageId: package_id, UserRemark: user_mark, CouponAmount: coupon_price, PaymentAmount: payment_price, UserCouponId: user_coupon_id, DiscountAmount: discount_price, PaymentAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), PaymentExpiredAt: time.Now().Add(dd).Format(utils.TIME_DEFAULT_FORMAT), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT)}
-	err1 := tx.Table("h_orders").Omit("refund_request_at", "refund_status", "refund_at", "extra", "invoice_id", "package_id").Create(&order).Error
+	omit := []string{"refund_request_at", "refund_status", "refund_at", "extra", "invoice_id"}
+	if order_type == "package" {
+		if user_coupon_id == 0 {
+			omit = append(omit, "user_coupon_id")
+		}
+	}
+	if order_type != "package" {
+		omit = append(omit, "package_id")
+		if user_coupon_id == 0 {
+			omit = append(omit, "user_coupon_id")
+		}
+	}
 
-	log.Info("order id:", order.ID)
+	var order = models.OrderModel{No: utils.GenerateOrderNo(), Source: source, Amount: surface_price, UserId: user.Id, PackageId: package_id, UserRemark: user_mark, CouponAmount: coupon_price, PaymentAmount: payment_price, UserCouponId: user_coupon_id, DiscountAmount: discount_price, PaymentAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), PaymentExpiredAt: time.Now().Add(dd).Format(utils.TIME_DEFAULT_FORMAT), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT)}
+	err1 := tx.Table("h_orders").Omit(omit...).Create(&order).Error
+
+	if err1 != nil {
+		tx.Rollback()
+		log.Info("insert err is:", err1)
+		return false, errors.New("插入数据错误")
+	}
 
 	var buffer bytes.Buffer
 	sql := "insert into h_order_items (`type`, price, payment_price, created_at, updated_at, order_id, course_id, user_id) values"
@@ -962,7 +983,11 @@ func createOrder() (bool, error) {
 	for i, e := range items {
 
 		if order_type == "training" {
-
+			if i == len(items)-1 {
+				buffer.WriteString(fmt.Sprintf("('%s', %.2f, %.2f, '%s', '%s', %d, %d, %d, %d, %d);", e.OType, e.Price, e.PaymentPrice, e.CreatedAt, e.UpdatedAt, e.OrderId, e.CourseId, e.UserId, e.PeriodId, e.TrainingId))
+			} else {
+				buffer.WriteString(fmt.Sprintf("('%s', %.2f, %.2f, '%s', '%s', %d, %d, %d, %d, %d),", e.OType, e.Price, e.PaymentPrice, e.CreatedAt, e.UpdatedAt, e.OrderId, e.CourseId, e.UserId, e.PeriodId, e.TrainingId))
+			}
 		} else {
 			if i == len(items)-1 {
 				buffer.WriteString(fmt.Sprintf("('%s', %.2f, %.2f, '%s', '%s', %d, %d, %d);", e.OType, e.Price, e.PaymentPrice, e.CreatedAt, e.UpdatedAt, e.OrderId, e.CourseId, e.UserId))
@@ -973,25 +998,29 @@ func createOrder() (bool, error) {
 	}
 	err3 := tx.Exec(buffer.String()).Error
 
-	if err1 != nil || err2 != nil || err3 != nil {
+	if err2 != nil || err3 != nil {
 		tx.Rollback()
-		log.Info("err is:", err1, err2, err3)
+		log.Info("insert err is:", err2, err3)
 		return false, errors.New("插入数据错误")
 	}
 
 	tx.Commit()
 
-	return true, nil
+	return true, order
 }
 
+/**
+获取订单详情数据
+*/
 func getOrderItemData(order models.OrderModel) []models.OrderItemModel {
 	items := make([]models.OrderItemModel, 0)
 	var item models.OrderItemModel
 	var courses []models.Course
 	db.GetDB().Table("h_edu_courses").Where("id in (?)", course_ids).Select("id, price, type").Find(&courses)
 
+	log.Info("order is:", order)
 	for _, v := range courses {
-		item = models.OrderItemModel{OType: v.Type, Price: v.Price, PaymentPrice: course_price.payment[v.Id].(float32), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), OrderId: order.ID, CourseId: v.Id, UserId: user.Id}
+		item = models.OrderItemModel{OType: v.Type, Price: v.Price, PaymentPrice: course_price.payment[v.Id].(float32), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), OrderId: order.ID, CourseId: v.Id, UserId: user.Id, PeriodId: period_id, TrainingId: training_id}
 		items = append(items, item)
 	}
 

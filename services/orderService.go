@@ -1004,6 +1004,9 @@ func createOrder() (bool, interface{}) {
 		return false, errors.New("插入数据错误")
 	}
 
+	//发送异步监听任务
+	SendDelayQueueRequest(order.No, strconv.Itoa(order.ID))
+
 	tx.Commit()
 
 	return true, order
@@ -1018,7 +1021,6 @@ func getOrderItemData(order models.OrderModel) []models.OrderItemModel {
 	var courses []models.Course
 	db.GetDB().Table("h_edu_courses").Where("id in (?)", course_ids).Select("id, price, type").Find(&courses)
 
-	log.Info("order is:", order)
 	for _, v := range courses {
 		item = models.OrderItemModel{OType: v.Type, Price: v.Price, PaymentPrice: course_price.payment[v.Id].(float32), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), OrderId: order.ID, CourseId: v.Id, UserId: user.Id, PeriodId: period_id, TrainingId: training_id}
 		items = append(items, item)

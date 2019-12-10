@@ -31,7 +31,7 @@ func (baseOrm *BaseOrm) AddCartInfo(r *rest.Request, addCart *middlewares.AddCar
 	baseOrm.GetDB().Table("h_order_items").Where("course_id = ? and user_id = ?", course_id, user.Id).Select("order_id").Find(&orderItems)
 
 	if len(orderItems) > 0 {
-		var ids []int64
+		var ids []int
 		var orders []models.OrderModel
 		for _, value := range orderItems {
 			ids = append(ids, value.OrderId)

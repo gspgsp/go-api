@@ -51,7 +51,7 @@ func (that *BaseOrm) InitDB() {
 	that.DB.DB().SetMaxIdleConns(1000)
 	that.DB.DB().SetMaxOpenConns(2600) //2核8G Xeon 最大连接数26850
 	that.DB.DB().SetConnMaxLifetime(300 * time.Second)
-	that.DB.LogMode(false) //决定在终端是否打印sql，开发环境下设置为true
+	that.DB.LogMode(true) //决定在终端是否打印sql，开发环境下设置为true
 
 	baseDb = that.DB
 }

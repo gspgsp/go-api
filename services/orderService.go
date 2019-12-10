@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"edu_api/middlewares"
 	"edu_api/models"
 	"edu_api/utils"
@@ -953,15 +954,46 @@ func createOrder() (bool, error) {
 
 	log.Info("order id:", order.ID)
 
-	//var buffer bytes.Buffer
-	//sql := "insert into h_order_items (`type`, price, payment_price, created_at, updated_at, order_id, course_id, user_id) values"
+	var buffer bytes.Buffer
+	sql := "insert into h_order_items (`type`, price, payment_price, created_at, updated_at, order_id, course_id, user_id) values"
+	_, err2 := buffer.WriteString(sql)
 
-	if err1 != nil {
+	items := getOrderItemData(order)
+	for i, e := range items {
+
+		if order_type == "training" {
+
+		} else {
+			if i == len(items)-1 {
+				buffer.WriteString(fmt.Sprintf("('%s', %.2f, %.2f, '%s', '%s', %d, %d, %d);", e.OType, e.Price, e.PaymentPrice, e.CreatedAt, e.UpdatedAt, e.OrderId, e.CourseId, e.UserId))
+			} else {
+				buffer.WriteString(fmt.Sprintf("('%s', %.2f, %.2f, '%s', '%s', %d, %d, %d),", e.OType, e.Price, e.PaymentPrice, e.CreatedAt, e.UpdatedAt, e.OrderId, e.CourseId, e.UserId))
+			}
+		}
+	}
+	err3 := tx.Exec(buffer.String()).Error
+
+	if err1 != nil || err2 != nil || err3 != nil {
 		tx.Rollback()
-		return false, err1
+		log.Info("err is:", err1, err2, err3)
+		return false, errors.New("插入数据错误")
 	}
 
 	tx.Commit()
 
 	return true, nil
+}
+
+func getOrderItemData(order models.OrderModel) []models.OrderItemModel {
+	items := make([]models.OrderItemModel, 0)
+	var item models.OrderItemModel
+	var courses []models.Course
+	db.GetDB().Table("h_edu_courses").Where("id in (?)", course_ids).Select("id, price, type").Find(&courses)
+
+	for _, v := range courses {
+		item = models.OrderItemModel{OType: v.Type, Price: v.Price, PaymentPrice: course_price.payment[v.Id].(float32), CreatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), UpdatedAt: time.Now().Format(utils.TIME_DEFAULT_FORMAT), OrderId: order.ID, CourseId: v.Id, UserId: user.Id}
+		items = append(items, item)
+	}
+
+	return items
 }

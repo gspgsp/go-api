@@ -9,9 +9,10 @@ type OrderItemModel struct {
 	Price        float32 `json:"price"`
 	PaymentPrice float32 `json:"payment_price"`
 	CreatedAt    string  `json:"created_at"`
-	OrderId      int64   `json:"order_id"`
-	PeriodId     int64   `json:"period_id"`
-	TrainingId   int64   `json:"training_id"`
-	CourseId     int64   `json:"course_id"`
-	UserId       int64   `json:"user_id"`
+	UpdatedAt    string  `json:"updated_at"`
+	OrderId      int     `json:"order_id"`
+	PeriodId     int     `json:"period_id"`
+	TrainingId   int     `json:"training_id"`
+	CourseId     int     `json:"course_id"`
+	UserId       int     `json:"user_id"`
 }

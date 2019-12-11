@@ -998,6 +998,13 @@ func createOrder() (bool, interface{}) {
 	}
 	err3 := tx.Exec(buffer.String()).Error
 
+	//清除购物车
+	tx.Table("h_carts").Where("user_id = ? and course_id in (?)", user.Id, course_ids).Delete(models.Cart{})
+	//用户优惠券状态更新
+	if user_coupon_id > 0 {
+		tx.Table("h_user_coupon").Where("user_id = ? and coupon_id = ?", user.Id, user_coupon_id).Update(models.UserCoupon{Status: 1, UsedAt: utils.ParseTimeToString()})
+	}
+
 	if err2 != nil || err3 != nil {
 		tx.Rollback()
 		log.Info("insert err is:", err2, err3)

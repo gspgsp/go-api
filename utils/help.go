@@ -170,3 +170,10 @@ func ReturnErrors(info string) error {
 	}
 	return errors.New(info)
 }
+
+/**
+格式化标准时间到字符串
+*/
+func ParseTimeToString() string {
+	return time.Now().Format(TIME_DEFAULT_FORMAT)
+}

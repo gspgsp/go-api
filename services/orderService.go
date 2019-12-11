@@ -48,8 +48,6 @@ var (
 	course_price           coursePrice            //课程价格信息
 	available_coupon       availableCoupon        //可用的优惠券信息
 	coupon_price           float32                //总优惠券价格
-	db                     *BaseOrm               //数据库操作对象
-	auth                   string                 //授权信息
 	available_coupon_infos []models.CouponInfo    //处理后的可用优惠券信息
 	orderCourse            models.OrderCourse     //处理后的课程信息
 	package_id             int                    //订单套餐ID
@@ -63,7 +61,7 @@ var (
 /**
 初始化参数
 */
-func initParam() {
+func init() {
 	course_price.price = make(map[int]interface{})
 	course_price.discount = make(map[int]interface{})
 	course_price.coupon = make(map[int]interface{})
@@ -157,7 +155,6 @@ func initRequest(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, in
 提交订单
 */
 func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
-	initParam()
 	code, res := initRequest(r, commitOrder)
 	if code == 1 {
 		return code, res
@@ -174,7 +171,6 @@ func (baseOrm *BaseOrm) SubmitOrder(r *rest.Request, commitOrder *middlewares.Co
 创建订单
 */
 func (baseOrm *BaseOrm) CreateOrder(r *rest.Request, commitOrder *middlewares.CommitOrder) (int, interface{}) {
-	initParam()
 	code, res := initRequest(r, commitOrder)
 	if code == 1 {
 		return code, res

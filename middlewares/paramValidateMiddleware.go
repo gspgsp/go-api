@@ -3,6 +3,7 @@ package middlewares
 import (
 	"errors"
 	valid "github.com/asaskevich/govalidator"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -81,7 +82,7 @@ func (addCart *AddCart) AddCartValidator() (bool, error) {
 
 //提交订单验证
 type CommitOrder struct {
-	Source       string `json:"Source" valid:"-"`
+	Source       string `json:"source" valid:"-"`
 	Type         string `json:"type" valid:"-"`
 	Ids          string `json:"ids" valid:"legalId"`
 	PeriodId     int    `json:"period_id" valid:"-"`
@@ -120,4 +121,30 @@ func (commitOrder *CommitOrder) CommitOrderValidator() (bool, error) {
 	}
 
 	return result, nil
+}
+
+//订单支付验证
+type Payment struct {
+	No        string `json:"no"`
+	PayType   string `json:"pay_type" valid:"-"`
+	PayMethod string `json:"pay_method" valid:"-"`
+	Stage     int    `json:"stage" valid:"-"`
+	Openid    string `json:"openid" valid:"-"`
+}
+
+func (payment *Payment) PaymentValidator() (bool, error) {
+
+	if !valid.IsIn(payment.PayType, "course", "invoice", "vip") || !valid.IsIn(payment.PayMethod, "weixin_h5", "weixin_jsapi", "alipay", "hua_bai") {
+		return false, errors.New("订单类型不正确/支付方式不正确")
+	}
+
+	if payment.PayMethod == "hua_bai" && !valid.IsIn(strconv.Itoa(payment.Stage), "-1", "3", "6", "12") {
+		return false, errors.New("花呗分期期数不支持")
+	}
+
+	if payment.PayMethod == "weixin_jsapi" && valid.IsNull(payment.Openid) {
+		return false, errors.New("openid必须")
+	}
+
+	return true, nil
 }

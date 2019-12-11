@@ -158,3 +158,33 @@ func SetClassChapterMediumPlayInfo(userId, courseId, chapterId, info interface{}
 /**
 mongoDb缓存类
 */
+
+/**
+支付宝支付信息
+*/
+type AliPayConf struct {
+	Alipay aliPayYaml
+}
+
+//支付宝配置
+type aliPayYaml struct {
+	AppId      string `yaml:"app_id"`
+	PrivateKey string `yaml:"private_key"`
+}
+
+//获取支付宝配置
+func GetAliPayConf() (aliPayConf AliPayConf, err error) {
+	conf := AliPayConf{}
+	cacheFile, err := ioutil.ReadFile("D:/gopath/src/edu_api/config/alipay.yaml")
+
+	if err != nil {
+		return conf, err
+	}
+
+	err = yaml.Unmarshal(cacheFile, &conf)
+	if err != nil {
+		return conf, err
+	}
+
+	return conf, nil
+}

@@ -3,6 +3,7 @@ package routes
 import (
 	"edu_api/controllers/auth"
 	"edu_api/controllers/cart"
+	"edu_api/controllers/cashier"
 	"edu_api/controllers/edu"
 	"edu_api/controllers/home"
 	"edu_api/controllers/order"
@@ -47,6 +48,7 @@ func InitRoute() (rest.App, error) {
 		rest.Delete("/cart/:id", new(cart.CartController).DelCart),                    //删除购物车
 		rest.Post("/order/submit", new(order.OrderController).SubmitOrder),            //提交订单
 		rest.Post("/order/create", new(order.OrderController).CreateOrder),            //创建订单
+		rest.Post("/cashier/payment", new(cashier.CashierController).Payment),         //生成支付信息
 	)
 
 	if err != nil {

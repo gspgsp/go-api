@@ -1,18 +1,17 @@
 package services
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
 	"edu_api/models"
 	"edu_api/utils"
-	"errors"
-	"strconv"
-	"log"
 	"encoding/json"
+	"errors"
+	"github.com/ant0ine/go-json-rest/rest"
+	"log"
+	"strconv"
 )
 
 var (
 	login Login
-	user  models.User
 	jwt   models.JwtClaim
 )
 
@@ -23,7 +22,7 @@ type Login struct {
 
 /**
 登录
- */
+*/
 func (baseOrm *BaseOrm) Login(r *rest.Request) (access_token string, err error) {
 
 	if err = r.DecodeJsonPayload(&login); err != nil {

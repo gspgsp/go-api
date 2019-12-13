@@ -112,7 +112,7 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 		log.Info("插入VIP订单成功")
 
 		//向任务队列插入任务
-		SendDelayQueueRequest(vipOrderData["no"].(string), strconv.Itoa(order.ID))
+		SendDelayQueueRequest(vipOrderData["no"].(string), strconv.Itoa(order.ID), "close_vip_order")
 		tx.Commit()
 		return 0, "VIP订单创建成功"
 	}
@@ -121,9 +121,9 @@ func (baseOrm *BaseOrm) CreateVipOrder(r *rest.Request, vipOrder *middlewares.Vi
 /**
 发送任务
 */
-func SendDelayQueueRequest(id, order_id string) {
+func SendDelayQueueRequest(id, order_id, topic_name string) {
 	var closeOrder models.CloseOrder
-	closeOrder.Topic = "close_vip_order"
+	closeOrder.Topic = topic_name
 	closeOrder.ID = id
 	closeOrder.Delay = utils.DELAY_JOB_CLOSE
 	closeOrder.TTR = utils.DELAY_JOB_TTL

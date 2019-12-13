@@ -1008,7 +1008,7 @@ func createOrder() (bool, interface{}) {
 	}
 
 	//发送异步监听任务
-	SendDelayQueueRequest(order.No, strconv.Itoa(order.ID))
+	SendDelayQueueRequest(order.No, strconv.Itoa(order.ID), "close_course_order")
 
 	tx.Commit()
 

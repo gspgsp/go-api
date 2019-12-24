@@ -170,6 +170,7 @@ type AliPayConf struct {
 type aliPayYaml struct {
 	AppId      string `yaml:"app_id"`
 	PrivateKey string `yaml:"private_key"`
+	PublicKey  string `yaml:"public_key"`
 }
 
 //获取支付宝配置

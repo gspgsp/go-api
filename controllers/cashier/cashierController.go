@@ -41,3 +41,18 @@ func (cashier *CashierController) Payment(w rest.ResponseWriter, r *rest.Request
 		cashier.controller.JsonReturn(w, "result", "")
 	}
 }
+
+func (cashier *CashierController) PayNotify(w rest.ResponseWriter, r *rest.Request) {
+	var message string
+	if r.PathParam("type") == "alipay" { //包括 余额、花呗(分期)
+		message = cashier.controller.BaseOrm.PayNotify(r, "alipay")
+	} else if r.PathParam("type") == "wechat_pay" { //包括h5支付、jsapi支付
+
+	}
+
+	//其实这里不能这样返回，因为支付宝那边只需要一个字符串success/fail，
+	//后续准备把这个rest框架换为其它的，这个ResponseWriter没有
+	//重写golang 自带的http.ResponseWriter的write()方法
+	cashier.controller.JsonReturn(w, "result", message)
+
+}

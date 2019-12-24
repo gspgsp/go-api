@@ -1,14 +1,17 @@
 package services
 
 import (
+	"bytes"
 	"edu_api/models"
 	"edu_api/utils"
+	"encoding/json"
 	"errors"
 	"fmt"
 	valid "github.com/asaskevich/govalidator"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"log"
+	log "github.com/sirupsen/logrus"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -209,4 +212,42 @@ func FormatLocalTime(time time.Time) (str string, err error) {
 	}
 
 	return "", errors.New("解析错误")
+}
+
+/**
+发送任务
+*/
+func SendDelayQueueRequest(id, order_id, topic_name string) {
+	var closeOrder models.CloseOrder
+	closeOrder.Topic = topic_name
+	closeOrder.ID = id
+	closeOrder.Delay = utils.DELAY_JOB_CLOSE
+	closeOrder.TTR = utils.DELAY_JOB_TTL
+	closeOrder.Body = models.CloseOrderBody{order_id}
+
+	log.Info("the closeOrder is:", closeOrder)
+	jsonStr, err := json.Marshal(closeOrder)
+
+	log.Info("the jsonStr is:", jsonStr)
+
+	if err != nil {
+		log.Info("the error is:", err.Error())
+	}
+
+	url := utils.DELAY_JOB_URL + ":" + utils.DELAY_JOB_PORT + "/" + closeOrder.Topic
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+
+	req.Header.Set("Content-Type", "application/json")
+	if err != nil {
+		log.Info("json解析错误:" + err.Error())
+		panic(err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Info("发送队列任务错误:" + err.Error())
+		panic(err)
+	}
+	defer resp.Body.Close()
 }

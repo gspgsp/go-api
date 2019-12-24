@@ -115,3 +115,41 @@ func payPage(pay interface{}, payment *middlewares.Payment) (string, error) {
 		return "", nil
 	}
 }
+
+func (baseOrm *BaseOrm) PayNotify(r *rest.Request, notify_type string) string {
+
+	if notify_type == "alipay" {
+		var notifyReq models.NotifyRequestModel
+		if err := r.DecodeJsonPayload(&notifyReq); err != nil {
+			return err.Error()
+		}
+
+		return aliPay(&notifyReq)
+	}
+
+	if notify_type == "wechat_pay" {
+
+	}
+
+	return "success"
+}
+
+func aliPay(notifyReq *models.NotifyRequestModel) string {
+	//验签操作
+	ok, err := gopay.VerifyAliPaySign(aliPayConfig.Alipay.PublicKey, notifyReq)
+	if err != nil {
+		log.Info("alipay verify sign error", err.Error())
+		return "fail"
+	}
+
+	log.Info("alipay verify sign:", ok)
+
+	//数据库操作
+
+	return "success"
+
+}
+
+func weixPay() {
+
+}

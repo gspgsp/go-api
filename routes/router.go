@@ -49,6 +49,7 @@ func InitRoute() (rest.App, error) {
 		rest.Post("/order/submit", new(order.OrderController).SubmitOrder),            //提交订单
 		rest.Post("/order/create", new(order.OrderController).CreateOrder),            //创建订单
 		rest.Post("/cashier/payment", new(cashier.CashierController).Payment),         //生成支付信息
+		rest.Post("/pay_notify/:type", new(cashier.CashierController).PayNotify),      //支付信息异步通知统一接口
 	)
 
 	if err != nil {

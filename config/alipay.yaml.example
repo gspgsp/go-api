@@ -1,3 +1,4 @@
 alipay:
   app_id: 123456
   private_key: '123654789'
+  public_key: '123456789'

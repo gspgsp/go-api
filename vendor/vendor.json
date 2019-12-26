@@ -121,6 +121,12 @@
 			"revisionTime": "2019-08-07T10:34:36Z"
 		},
 		{
+			"checksumSHA1": "N/xvYptCDcWcmolqAWW92uCGusI=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "42bc974514ff101a54c6b72a0e4dee29d96c0b26",
+			"revisionTime": "2019-08-12T10:43:08Z"
+		},
+		{
 			"checksumSHA1": "oCH3J96RWvO8W4xjix47PModpio=",
 			"path": "golang.org/x/crypto/bcrypt",
 			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",

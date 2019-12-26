@@ -52,3 +52,11 @@ const DELAY_JOB_TTL = 180
 
 //默认时间格式
 const TIME_DEFAULT_FORMAT = "2006-01-02 15:04:05"
+
+//订单状态常量：0 订单已经付款， 1 订单信息不对， 2 订单信息正常
+const ORDER_PAIED = 0
+const ORDER_INFO_ERROR = 1
+const ORDER_INFO_OK = 2
+
+//默认拓展信息
+const DEFAULT_EXTRA = `'{"payment_abnormal":"订单已被支付，但是订单状态不对"}'`

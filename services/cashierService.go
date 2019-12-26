@@ -19,6 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"sort"
+	"time"
 )
 
 const (
@@ -140,105 +141,125 @@ func payPage(pay interface{}, payment *middlewares.Payment) (string, error) {
 func (baseOrm *BaseOrm) PayNotify(r *rest.Request, notify_type string) string {
 
 	if notify_type == "alipay" {
+		//这个json解析插件还在研究中，还是没法解析多层json的数据
+		//var notifyReq models.NotifyRequestModel
+		//content, _ := ioutil.ReadAll(r.Body)
+		//render := strings.NewReader(string(content))
+		//decoder := codec.NewDecoder(render, &codec.JsonHandle{})
+		//_ = decoder.Decode(&notifyReq)
+		//fmt.Printf("res is:%+v", notifyReq)
+
 		var notifyReq models.NotifyRequestModel
 		if err := r.DecodeJsonPayload(&notifyReq); err != nil {
-			return err.Error()
+			return "fail"
 		}
 
-		v_fund_bill_list := make([]models.FundBillListInfo, 0)
-		json.Unmarshal([]byte(notifyReq.FundBillList.(string)), &v_fund_bill_list)
+		//暂时取反
+		if !aliPay(&notifyReq) {
+			params, _ := base64.StdEncoding.DecodeString(notifyReq.PassbackParams)
 
-		if notifyReq.VoucherDetailList != nil {
-			v_voucher_bill_list := make([]models.VoucherDetailListInfo, 0)
-			json.Unmarshal([]byte(notifyReq.VoucherDetailList.(string)), &v_voucher_bill_list)
-			notifyReq.VoucherDetailList = v_voucher_bill_list
+			var extend models.PayAliExtendParam
+			bytes := []byte(string(params) + `"}`)
+			_ = json.Unmarshal(bytes, &extend)
+
+			res := verifyOrder(extend)
+			if res == 0 {
+				return "success"
+			}
+			if res == 1 {
+				return "fail"
+			}
+			//afterPay(notifyReq, extend)
+
+			return "success"
 		}
 
-		notifyReq.FundBillList = v_fund_bill_list
-
-		//重新组合数据,排除sign和sign_type
-		var m map[string]interface{}
-		m = make(map[string]interface{}, 0)
-		m["notify_time"] = notifyReq.NotifyTime
-		m["notify_type"] = notifyReq.NotifyType
-		m["notify_id"] = notifyReq.NotifyId
-		m["app_id"] = notifyReq.AppId
-		m["charset"] = notifyReq.Charset
-		m["version"] = notifyReq.Version
-		m["auth_app_id"] = notifyReq.AuthAppId
-		m["trade_no"] = notifyReq.TradeNo
-		m["total_amount"] = notifyReq.TotalAmount
-		m["out_biz_no"] = notifyReq.OutBizNo
-		m["buyer_id"] = notifyReq.BuyerId
-		m["buyer_logon_id"] = notifyReq.BuyerLogonId
-		m["seller_id"] = notifyReq.SellerId
-		m["seller_email"] = notifyReq.SellerEmail
-		m["trade_status"] = notifyReq.TradeStatus
-		m["receipt_amount"] = notifyReq.ReceiptAmount
-		m["invoice_amount"] = notifyReq.InvoiceAmount
-		m["buyer_pay_amount"] = notifyReq.BuyerPayAmount
-		m["point_amount"] = notifyReq.PointAmount
-		m["refund_fee"] = notifyReq.RefundFee
-		m["subject"] = notifyReq.Subject
-		m["body"] = notifyReq.Body
-		m["gmt_create"] = notifyReq.GmtCreate
-		m["gmt_payment"] = notifyReq.GmtPayment
-		m["gmt_refund"] = notifyReq.GmtRefund
-		m["gmt_close"] = notifyReq.GmtClose
-		m["fund_bill_list"] = notifyReq.FundBillList
-		m["passback_params"] = notifyReq.PassbackParams
-		m["voucher_detail_list"] = notifyReq.VoucherDetailList
-		m["method"] = notifyReq.Method
-		m["timestamp"] = notifyReq.Timestamp
-
-		sign := notifyReq.Sign
-		//获取要进行计算哈希的sign string
-		strPreSign, _err := genAlipaySignString(m)
-		if _err != nil {
-			fmt.Println("error get sign string, reason:", _err)
-			return ""
-		}
-
-		//进行rsa verify
-		pass, _err := RSAVerify([]byte(strPreSign), []byte(sign))
-
-		if pass {
-			fmt.Println("verify sig pass.")
-		} else {
-			fmt.Println("verify sig not pass. error:", _err)
-		}
+		return "fail"
 	}
 
 	if notify_type == "wechat_pay" {
 
+		return "success"
 	}
 
-	return "success"
+	return "fail"
 }
 
 /**
-本来准备用这个三方的拓展包实现支付以及回调验证，但是发现支付还可以用，但是回调验证就不好用了，
+本来准备用iGoogle-ink三方的拓展包实现支付以及回调验证，但是发现支付还可以用，但是回调验证就不好用了，
 因为回调验证用到了echo框架(和我用的rest框架有太多不一样，主要是rest框架实现的方法数量有限)，所以很多结构体不能用,
 所以网上找了下面的两个方法来验证
 */
-func aliPay(notifyReq *models.NotifyRequestModel) string {
-	//验签操作
-	ok, err := gopay.VerifyAliPaySign(aliPayConfig.Alipay.PublicKey, notifyReq)
-	if err != nil {
-		log.Info("alipay verify sign error", err.Error())
-		return "fail"
+func aliPay(notifyReq *models.NotifyRequestModel) bool {
+	v_fund_bill_list := make([]models.FundBillListInfo, 0)
+	json.Unmarshal([]byte(notifyReq.FundBillList.(string)), &v_fund_bill_list)
+
+	if notifyReq.VoucherDetailList != nil {
+		v_voucher_bill_list := make([]models.VoucherDetailListInfo, 0)
+		json.Unmarshal([]byte(notifyReq.VoucherDetailList.(string)), &v_voucher_bill_list)
+		notifyReq.VoucherDetailList = v_voucher_bill_list
 	}
 
-	log.Info("alipay verify sign:", ok)
+	notifyReq.FundBillList = v_fund_bill_list
 
-	//数据库操作
+	//重新组合数据,排除sign和sign_type
+	var m map[string]interface{}
+	m = make(map[string]interface{}, 0)
+	m["notify_time"] = notifyReq.NotifyTime
+	m["notify_type"] = notifyReq.NotifyType
+	m["notify_id"] = notifyReq.NotifyId
+	m["app_id"] = notifyReq.AppId
+	m["charset"] = notifyReq.Charset
+	m["version"] = notifyReq.Version
+	m["auth_app_id"] = notifyReq.AuthAppId
+	m["trade_no"] = notifyReq.TradeNo
+	m["total_amount"] = notifyReq.TotalAmount
+	m["out_biz_no"] = notifyReq.OutBizNo
+	m["buyer_id"] = notifyReq.BuyerId
+	m["buyer_logon_id"] = notifyReq.BuyerLogonId
+	m["seller_id"] = notifyReq.SellerId
+	m["seller_email"] = notifyReq.SellerEmail
+	m["trade_status"] = notifyReq.TradeStatus
+	m["receipt_amount"] = notifyReq.ReceiptAmount
+	m["invoice_amount"] = notifyReq.InvoiceAmount
+	m["buyer_pay_amount"] = notifyReq.BuyerPayAmount
+	m["point_amount"] = notifyReq.PointAmount
+	m["refund_fee"] = notifyReq.RefundFee
+	m["subject"] = notifyReq.Subject
+	m["body"] = notifyReq.Body
+	m["gmt_create"] = notifyReq.GmtCreate
+	m["gmt_payment"] = notifyReq.GmtPayment
+	m["gmt_refund"] = notifyReq.GmtRefund
+	m["gmt_close"] = notifyReq.GmtClose
+	m["fund_bill_list"] = notifyReq.FundBillList
+	m["passback_params"] = notifyReq.PassbackParams
+	m["voucher_detail_list"] = notifyReq.VoucherDetailList
+	m["method"] = notifyReq.Method
+	m["timestamp"] = notifyReq.Timestamp
 
-	return "success"
+	sign := notifyReq.Sign
+	//获取要进行计算哈希的sign string
+	strPreSign, _err := genAlipaySignString(m)
+	if _err != nil {
+		fmt.Println("error get sign string, reason:", _err)
+		return false
+	}
 
+	//进行rsa verify
+	pass, _err := RSAVerify([]byte(strPreSign), []byte(sign))
+
+	if pass {
+		fmt.Println("verify sig pass.")
+		return true
+	} else {
+		fmt.Println("verify sig not pass. error:", _err)
+		return false
+	}
 }
 
 func weixPay() {
 
+	return
 }
 
 /***************************************************************
@@ -306,4 +327,69 @@ func RSAVerify(src []byte, sign []byte) (pass bool, err error) {
 	}
 
 	return true, nil
+}
+
+/**
+验证订单信息
+int： 0 订单已经付款， 1 订单信息不对 2 订单信息正常
+*/
+func verifyOrder(extend interface{}) int {
+	var (
+		order   models.OrderModel
+		invoice models.InvoiceModel
+		vip     models.VipOrderModel
+	)
+	updated_at, _ := FormatLocalTime(time.Now())
+	switch value := extend.(type) {
+	case models.PayAliExtendParam:
+		//如果封装到同一个方法里面，还是会调用switch case
+		if value.BranchType == "order" {
+			if err := db.GetDB().Table("h_orders").Where("id = ? ", value.Id).First(&order).Error; err != nil {
+				return utils.ORDER_INFO_ERROR
+			}
+			if order.PaymentStatus == 1 {
+				return utils.ORDER_PAIED
+			}
+			if order.Status != 0 {
+				db.GetDB().Table("h_orders").Where("id = ?", order.ID).Update(map[string]interface{}{
+					"extra":      utils.DEFAULT_EXTRA,
+					"updated_at": updated_at,
+				})
+
+				return utils.ORDER_INFO_ERROR
+			}
+		} else if value.BranchType == "invoice" {
+			if err := db.GetDB().Table("h_invoices").Where("id = ? ", value.Id).First(&invoice).Error; err != nil {
+				return utils.ORDER_INFO_ERROR
+			}
+			if invoice.PaymentStatus == 1 {
+				return utils.ORDER_PAIED
+			}
+			if invoice.Status != 0 {
+				db.GetDB().Table("h_invoices").Where("id = ?", invoice.ID).Update(map[string]interface{}{
+					"extra":      utils.DEFAULT_EXTRA,
+					"updated_at": updated_at,
+				})
+
+				return utils.ORDER_INFO_ERROR
+			}
+		} else if value.BranchType == "vip" {
+			if err := db.GetDB().Table("h_vip_orders").Where("id = ? ", value.Id).First(&vip).Error; err != nil {
+				return utils.ORDER_INFO_ERROR
+			}
+			if vip.PaymentStatus == 1 {
+				return utils.ORDER_PAIED
+			}
+			if vip.Status != 0 {
+				db.GetDB().Table("h_vip_orders").Where("id = ?", vip.ID).Update(map[string]interface{}{
+					"extra":      utils.DEFAULT_EXTRA,
+					"updated_at": updated_at,
+				})
+
+				return utils.ORDER_INFO_ERROR
+			}
+		}
+	}
+
+	return utils.ORDER_INFO_OK
 }

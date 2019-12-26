@@ -162,16 +162,12 @@ func (baseOrm *BaseOrm) PayNotify(r *rest.Request, notify_type string) string {
 			bytes := []byte(string(params) + `"}`)
 			_ = json.Unmarshal(bytes, &extend)
 
-			res := verifyOrder(extend)
-			if res == 0 {
+			res := afterPayOrder(notifyReq, extend)
+			if res == 0 || res == 2 {
 				return "success"
-			}
-			if res == 1 {
+			} else {
 				return "fail"
 			}
-			//afterPay(notifyReq, extend)
-
-			return "success"
 		}
 
 		return "fail"
@@ -249,12 +245,15 @@ func aliPay(notifyReq *models.NotifyRequestModel) bool {
 	pass, _err := RSAVerify([]byte(strPreSign), []byte(sign))
 
 	if pass {
-		fmt.Println("verify sig pass.")
+		log.Info("verify sig pass.")
 		return true
-	} else {
-		fmt.Println("verify sig not pass. error:", _err)
+	} else if _err != nil {
+		log.Info("verify sig not pass. error:", _err.Error())
 		return false
 	}
+
+	log.Info("unknown error")
+	return false
 }
 
 func weixPay() {
@@ -277,7 +276,6 @@ func genAlipaySignString(mapBody map[string]interface{}) (sign string, err error
 
 	index := 0
 	for _, k := range sorted_keys {
-		fmt.Println("k=", k, "v =", mapBody[k])
 		value := fmt.Sprintf("%v", mapBody[k])
 		if value != "" {
 			signStrings = signStrings + k + "=" + value
@@ -303,7 +301,7 @@ func RSAVerify(src []byte, sign []byte) (pass bool, err error) {
 	block, _ := pem.Decode([]byte(ALIPAY_PUBLIC_KEY))
 	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		fmt.Printf("Failed to parse RSA public key: %s\n", err)
+		log.Info("Failed to parse RSA public key:", err.Error())
 		return
 	}
 	rsaPub, _ := pub.(*rsa.PublicKey)
@@ -317,12 +315,12 @@ func RSAVerify(src []byte, sign []byte) (pass bool, err error) {
 	data, _ := base64.StdEncoding.DecodeString(string(sign))
 
 	hexSig := hex.EncodeToString(data)
-	fmt.Printf("base decoder: %v, %v\n", string(sign), hexSig)
+	log.Info("base decoder:", hexSig)
 
 	//步骤4，调用rsa包的VerifyPKCS1v15验证签名有效性
 	err = rsa.VerifyPKCS1v15(rsaPub, crypto.SHA1, digest, data)
 	if err != nil {
-		fmt.Println("Verify sig error, reason: ", err)
+		log.Info("Verify sig error, reason: ", err.Error())
 		return false, err
 	}
 
@@ -333,7 +331,7 @@ func RSAVerify(src []byte, sign []byte) (pass bool, err error) {
 验证订单信息
 int： 0 订单已经付款， 1 订单信息不对 2 订单信息正常
 */
-func verifyOrder(extend interface{}) int {
+func afterPayOrder(notifyReq models.NotifyRequestModel, extend interface{}) int {
 	var (
 		order   models.OrderModel
 		invoice models.InvoiceModel
@@ -358,6 +356,8 @@ func verifyOrder(extend interface{}) int {
 
 				return utils.ORDER_INFO_ERROR
 			}
+
+			return updateOrderInfo(vip.ID, "h_orders", value.PaySource, notifyReq)
 		} else if value.BranchType == "invoice" {
 			if err := db.GetDB().Table("h_invoices").Where("id = ? ", value.Id).First(&invoice).Error; err != nil {
 				return utils.ORDER_INFO_ERROR
@@ -373,6 +373,8 @@ func verifyOrder(extend interface{}) int {
 
 				return utils.ORDER_INFO_ERROR
 			}
+
+			return updateOrderInfo(vip.ID, "h_invoices", value.PaySource, notifyReq)
 		} else if value.BranchType == "vip" {
 			if err := db.GetDB().Table("h_vip_orders").Where("id = ? ", value.Id).First(&vip).Error; err != nil {
 				return utils.ORDER_INFO_ERROR
@@ -388,8 +390,35 @@ func verifyOrder(extend interface{}) int {
 
 				return utils.ORDER_INFO_ERROR
 			}
+
+			return updateOrderInfo(vip.ID, "h_vip_orders", value.PaySource, notifyReq)
 		}
 	}
 
-	return utils.ORDER_INFO_OK
+	return utils.ORDER_INFO_ERROR
+}
+
+/**
+更新订单信息
+*/
+func updateOrderInfo(id int, table_name, payment_method string, notifyReq models.NotifyRequestModel) int {
+	updated_at, _ := FormatLocalTime(time.Now())
+
+	if result := db.GetDB().Table(table_name).Where("id = ?", id).Update(map[string]interface{}{
+		"payment_method":   payment_method,
+		"payment_status":   1,
+		"payment_at":       updated_at,
+		"updated_at":       updated_at,
+		"status":           1,
+		"payment_order_no": notifyReq.TradeNo,
+		"receipt_amount":   notifyReq.ReceiptAmount,
+	}).RowsAffected; result > 0 {
+		//同时发消息
+
+		//异步更新课程信息
+
+		return utils.ORDER_INFO_OK
+	}
+
+	return utils.ORDER_INFO_ERROR
 }

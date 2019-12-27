@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"edu_api/middlewares"
 	"edu_api/models"
+	"edu_api/tasksAndEvents"
 	"edu_api/utils"
 	"encoding/base64"
 	"encoding/hex"
@@ -357,7 +358,7 @@ func afterPayOrder(notifyReq models.NotifyRequestModel, extend interface{}) int 
 				return utils.ORDER_INFO_ERROR
 			}
 
-			return updateOrderInfo(vip.ID, "h_orders", value.PaySource, notifyReq)
+			return updateOrderInfo(vip.ID, "h_orders", value.PaySource, value.BranchType, notifyReq)
 		} else if value.BranchType == "invoice" {
 			if err := db.GetDB().Table("h_invoices").Where("id = ? ", value.Id).First(&invoice).Error; err != nil {
 				return utils.ORDER_INFO_ERROR
@@ -374,7 +375,7 @@ func afterPayOrder(notifyReq models.NotifyRequestModel, extend interface{}) int 
 				return utils.ORDER_INFO_ERROR
 			}
 
-			return updateOrderInfo(vip.ID, "h_invoices", value.PaySource, notifyReq)
+			return updateOrderInfo(vip.ID, "h_invoices", value.PaySource, value.BranchType, notifyReq)
 		} else if value.BranchType == "vip" {
 			if err := db.GetDB().Table("h_vip_orders").Where("id = ? ", value.Id).First(&vip).Error; err != nil {
 				return utils.ORDER_INFO_ERROR
@@ -391,7 +392,7 @@ func afterPayOrder(notifyReq models.NotifyRequestModel, extend interface{}) int 
 				return utils.ORDER_INFO_ERROR
 			}
 
-			return updateOrderInfo(vip.ID, "h_vip_orders", value.PaySource, notifyReq)
+			return updateOrderInfo(vip.ID, "h_vip_orders", value.PaySource, value.BranchType, notifyReq)
 		}
 	}
 
@@ -401,7 +402,7 @@ func afterPayOrder(notifyReq models.NotifyRequestModel, extend interface{}) int 
 /**
 更新订单信息
 */
-func updateOrderInfo(id int, table_name, payment_method string, notifyReq models.NotifyRequestModel) int {
+func updateOrderInfo(id int, table_name, payment_method, branch_type string, notifyReq models.NotifyRequestModel) int {
 	updated_at, _ := FormatLocalTime(time.Now())
 
 	if result := db.GetDB().Table(table_name).Where("id = ?", id).Update(map[string]interface{}{
@@ -413,9 +414,13 @@ func updateOrderInfo(id int, table_name, payment_method string, notifyReq models
 		"payment_order_no": notifyReq.TradeNo,
 		"receipt_amount":   notifyReq.ReceiptAmount,
 	}).RowsAffected; result > 0 {
-		//同时发消息
-
 		//异步更新课程信息
+		order_execute := &tasksAndEvents.OrderExecute{OrderId: id, BranchType: branch_type}
+		order_execute.Update()
+
+		//同时发消息
+		paid_success_message := &tasksAndEvents.PaidSuccessMessage{OrderId: id, BranchType: branch_type, PaySource: payment_method, EventType: "pay_order_success"}
+		paid_success_message.Send()
 
 		return utils.ORDER_INFO_OK
 	}

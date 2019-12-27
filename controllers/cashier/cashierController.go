@@ -1,9 +1,11 @@
 package cashier
 
 import (
+	"adx-api.pingcoo.com/config"
 	"edu_api/controllers"
 	"edu_api/middlewares"
 	"errors"
+	"fmt"
 	"github.com/ant0ine/go-json-rest/rest"
 	log "github.com/sirupsen/logrus"
 )
@@ -44,6 +46,8 @@ func (cashier *CashierController) Payment(w rest.ResponseWriter, r *rest.Request
 
 func (cashier *CashierController) PayNotify(w rest.ResponseWriter, r *rest.Request) {
 	var message string
+	fmt.Printf("config.Cfg.Queue.Addr:%s", config.Cfg.Queue.Addr)
+
 	if r.PathParam("type") == "alipay" { //包括 余额、花呗(分期)
 		message = cashier.controller.BaseOrm.PayNotify(r, "alipay")
 	} else if r.PathParam("type") == "wechat_pay" { //包括h5支付、jsapi支付

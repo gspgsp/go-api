@@ -139,6 +139,12 @@
 			"revisionTime": "2019-07-01T08:59:26Z"
 		},
 		{
+			"checksumSHA1": "jqxUk8Hr4ZJt4+vY46Ctgl+7uPc=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "1f64d6156d11335c3f22d9330b0ad14fc1e789ce",
+			"revisionTime": "2019-11-19T21:27:36Z"
+		},
+		{
 			"checksumSHA1": "lIWdFKN8IQVmXUrOdm0khBy5Z7M=",
 			"path": "gopkg.in/yaml.v3",
 			"revision": "674ba3eaed223079f9377fbb0c98c0951bf6ec10",

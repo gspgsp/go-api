@@ -2,6 +2,7 @@ package tasksAndEvents
 
 import (
 	"bytes"
+	"edu_api/config"
 	"net"
 	"time"
 )
@@ -17,7 +18,7 @@ type Operate interface {
 数据库操作
 */
 func operateDB(operate Operate) (int, error) {
-	conn, err := net.DialTimeout("tcp", "", 200*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", config.Config.Queue.Addr, 200*time.Millisecond)
 	if err != nil {
 		return 0, err
 	}

@@ -9,8 +9,8 @@ type paidSuccessMessage struct {
 }
 
 func (o *paidSuccessMessage) ToBytes() ([]byte, error) {
-	o.Class = "OrderExecute"
-	o.Method = "handle"
+	o.Class = "PaidSuccessMessage"
+	o.Method = "paidSuccessMessage"
 
 	data, err := json.Marshal(o)
 	if err != nil {

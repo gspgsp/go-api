@@ -10,7 +10,7 @@ type orderExecute struct {
 
 func (o *orderExecute) ToBytes() ([]byte, error) {
 	o.Class = "OrderExecute"
-	o.Method = "handle"
+	o.Method = "orderExecute"
 
 	data, err := json.Marshal(o)
 	if err != nil {

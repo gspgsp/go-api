@@ -430,10 +430,10 @@ func updateOrderInfo(id int, table_name, payment_method, branch_type string, not
 
 	//TODO::这里为了测试通过，直接调用异步任务服务，可以删掉
 	//异步更新课程信息
-	order_execute := &tasksAndEvents.OrderExecute{OrderId: id, BranchType: branch_type}
+	order_execute := &tasksAndEvents.OrderExecute{OrderId: id, BranchType: "vip"}
 	order_execute.Update()
 	//同时发消息
-	paid_success_message := &tasksAndEvents.PaidSuccessMessage{OrderId: id, BranchType: branch_type, PaySource: payment_method, EventType: "pay_order_success"}
+	paid_success_message := &tasksAndEvents.PaidSuccessMessage{OrderId: id, BranchType: "vip", PaySource: payment_method, EventType: "pay_order_success"}
 	paid_success_message.Send()
 
 	return utils.ORDER_INFO_ERROR

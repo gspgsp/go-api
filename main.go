@@ -6,13 +6,14 @@ import (
 	"edu_api/services"
 	"edu_api/utils"
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/iGoogle-ink/gopay"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"github.com/iGoogle-ink/gopay"
 )
 
 func main() {
 	log.Info("GoPAy version is:", gopay.Version)
+	log.Info("值的纪念的日子，安全抵达上海半个多月:", "2020年4月2日9:36分")
 	//初始化日志操作
 	(&(services.Log{utils.LOG_PATH, utils.LOG_NAME})).InitLog()
 

@@ -3,7 +3,9 @@ package services
 import (
 	"edu_api/hook"
 	"github.com/lestrrat-go/file-rotatelogs"
+	"github.com/olivere/elastic"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/sohlich/elogrus.v3"
 	"path"
 	"time"
 )
@@ -44,4 +46,7 @@ func configLocalFilesystemLogger(filePath string) {
 		log.Fatal("Init log failed, err:", err)
 	}
 	log.SetOutput(writer)
+
+	client, _ := elastic.NewClient()
+	elogrus.NewElasticHook(client, "localhost", log.DebugLevel, "mylog")
 }

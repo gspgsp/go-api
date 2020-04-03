@@ -95,11 +95,41 @@
 			"revisionTime": "2019-07-18T00:03:51Z"
 		},
 		{
+			"checksumSHA1": "beP+xP5P1IwniHZwr+Q1fymGKDk=",
+			"path": "github.com/mailru/easyjson",
+			"revision": "57978476cf2ad14ed35f95d1fb2c661d03d96321",
+			"revisionTime": "2020-03-30T20:51:32Z"
+		},
+		{
+			"checksumSHA1": "irwVKCQs8lkQZMVwTDm00E9Tdh4=",
+			"path": "github.com/mailru/easyjson/buffer",
+			"revision": "57978476cf2ad14ed35f95d1fb2c661d03d96321",
+			"revisionTime": "2020-03-30T20:51:32Z"
+		},
+		{
+			"checksumSHA1": "qWdnMyl4kxzKiCqcQwQPnhEWuNU=",
+			"path": "github.com/mailru/easyjson/jlexer",
+			"revision": "57978476cf2ad14ed35f95d1fb2c661d03d96321",
+			"revisionTime": "2020-03-30T20:51:32Z"
+		},
+		{
+			"checksumSHA1": "JlC8ltjgUSWXZvJoizV3TLUZEyQ=",
+			"path": "github.com/mailru/easyjson/jwriter",
+			"revision": "57978476cf2ad14ed35f95d1fb2c661d03d96321",
+			"revisionTime": "2020-03-30T20:51:32Z"
+		},
+		{
 			"checksumSHA1": "mymCWXEztnT0lf9RVJK8WwQx+y4=",
 			"origin": "github.com/iGoogle-ink/gopay/vendor/github.com/moul/http2curl",
 			"path": "github.com/moul/http2curl",
 			"revision": "c2576c416449dadfdba3f8f949caa134ebb52e3a",
 			"revisionTime": "2019-11-27T14:24:17Z"
+		},
+		{
+			"checksumSHA1": "WPex9f9GTIHMV/BEsUXLPmZsLzU=",
+			"path": "github.com/olivere/elastic",
+			"revision": "0e429faaa934317f89b23fd6005f91364fb5c1a0",
+			"revisionTime": "2020-03-27T09:12:47Z"
 		},
 		{
 			"checksumSHA1": "PrY7zmY+8tfIV6lUUZFjdVnhEXI=",
@@ -137,6 +167,12 @@
 			"path": "golang.org/x/crypto/blowfish",
 			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
 			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "mSwqybm5iAH9hyw5YDt0Svuebrw=",
+			"path": "gopkg.in/sohlich/elogrus.v3",
+			"revision": "1fa29e2f2009c129693c7079e5f6361bfbd34080",
+			"revisionTime": "2018-04-10T12:27:55Z"
 		},
 		{
 			"checksumSHA1": "jqxUk8Hr4ZJt4+vY46Ctgl+7uPc=",

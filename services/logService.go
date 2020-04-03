@@ -1,12 +1,11 @@
 package services
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/lestrrat-go/file-rotatelogs"
-	"time"
-	"path"
-	"edu_api/utils"
 	"edu_api/hook"
+	"github.com/lestrrat-go/file-rotatelogs"
+	log "github.com/sirupsen/logrus"
+	"path"
+	"time"
 )
 
 type Log struct {
@@ -29,7 +28,7 @@ func (initLog *Log) InitLog() {
 	log.AddHook(hook.NewTraceInfoHook("最终解释权归GJH"))
 
 	//日志路劲
-	file := path.Join(utils.LOG_PATH, utils.LOG_NAME)
+	file := path.Join(initLog.LogPath, initLog.LogName)
 	configLocalFilesystemLogger(file)
 }
 

@@ -24,7 +24,7 @@ func (initLog *Log) InitLog() {
 	//格式换时间输出格式
 	log.SetFormatter(&log.JSONFormatter{TimestampFormat: "2006-01-02 15:04:05"})
 
-	//所有的日志里面通过自定义hook函数追加一个，字符串，定义es的hook将日志存储到es
+	//所有的日志里面通过自定义hook函数追加一个，字符串，定义es的hook将日志存储到es，但是一直没拉下来这个包
 	log.AddHook(hook.NewTraceInfoHook("最终解释权归GJH"))
 
 	//日志路劲

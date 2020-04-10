@@ -1,7 +1,6 @@
 package services
 
 import (
-	"edu_api/hook"
 	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/olivere/elastic"
 	log "github.com/sirupsen/logrus"
@@ -23,15 +22,32 @@ func (initLog *Log) InitLog() {
 	//file, _ := os.OpenFile("./src/edu_api/log/request.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	//log.SetOutput(file)
 
+	var logger = log.New()
+
 	//格式换时间输出格式
 	log.SetFormatter(&log.JSONFormatter{TimestampFormat: "2006-01-02 15:04:05"})
 
-	//所有的日志里面通过自定义hook函数追加一个，字符串，定义es的hook将日志存储到es，但是一直没拉下来这个包
-	log.AddHook(hook.NewTraceInfoHook("最终解释权归GJH"))
-
-	//日志路劲
+	//日志保存到本地-日志路劲
 	file := path.Join(initLog.LogPath, initLog.LogName)
 	configLocalFilesystemLogger(file)
+
+	//所有的日志里面通过自定义hook函数追加一个，字符串，定义es的hook将日志存储到es
+	//log.AddHook(hook.NewTraceInfoHook("最终解释权归GJH"))
+	client, err := elastic.NewSimpleClient(elastic.SetURL("http://47.97.126.65:9200"))
+	if err != nil {
+		log.Info("init es err:", err.Error())
+	}
+
+	hook, err := elogrus.NewElasticHook(client, "127.0.0.1", log.DebugLevel, "mylog")
+	if err != nil {
+		log.Info("init hook err:", err.Error())
+	}
+	logger.Hooks.Add(hook)
+	logger.WithFields(log.Fields{
+		"name": "gjh",
+		"age":  42,
+		"host": "127.0.0.1",
+	})
 }
 
 //切割日志和清理过期日志
@@ -46,7 +62,4 @@ func configLocalFilesystemLogger(filePath string) {
 		log.Fatal("Init log failed, err:", err)
 	}
 	log.SetOutput(writer)
-
-	client, _ := elastic.NewClient()
-	elogrus.NewElasticHook(client, "localhost", log.DebugLevel, "mylog")
 }
